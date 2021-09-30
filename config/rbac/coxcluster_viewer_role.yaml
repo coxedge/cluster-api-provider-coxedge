@@ -1,0 +1,20 @@
+# permissions for end users to view coxclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: coxcluster-viewer-role
+rules:
+- apiGroups:
+  - cluster.capi.pf9.io
+  resources:
+  - coxclusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cluster.capi.pf9.io
+  resources:
+  - coxclusters/status
+  verbs:
+  - get

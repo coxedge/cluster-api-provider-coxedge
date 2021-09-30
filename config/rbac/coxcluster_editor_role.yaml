@@ -1,0 +1,24 @@
+# permissions for end users to edit coxclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: coxcluster-editor-role
+rules:
+- apiGroups:
+  - cluster.capi.pf9.io
+  resources:
+  - coxclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cluster.capi.pf9.io
+  resources:
+  - coxclusters/status
+  verbs:
+  - get

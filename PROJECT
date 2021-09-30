@@ -1,0 +1,16 @@
+domain: capi.pf9.io
+layout:
+- go.kubebuilder.io/v3
+projectName: cluster-api-provider-cox
+repo: github.com/platform9/cluster-api-provider-cox
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: capi.pf9.io
+  group: cluster
+  kind: CoxCluster
+  path: github.com/platform9/cluster-api-provider-cox/api/v1beta1
+  version: v1beta1
+version: "3"
