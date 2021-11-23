@@ -1,0 +1,148 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: coxmachines.cluster.capi.pf9.io
+spec:
+  group: cluster.capi.pf9.io
+  names:
+    kind: CoxMachine
+    listKind: CoxMachineList
+    plural: coxmachines
+    singular: coxmachine
+  scope: Namespaced
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: CoxMachine is the Schema for the coxmachines API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CoxMachineSpec defines the desired state of CoxMachine
+            properties:
+              addanycastipaddress:
+                description: AddAnyCastIPAddress enables AnyCast IP Address
+                type: boolean
+              commands:
+                description: Container command
+                items:
+                  type: string
+                type: array
+              containerPassword:
+                description: Password needed to pull container image
+                type: string
+              containerServer:
+                description: Image repository server URL
+                type: string
+              containerUsername:
+                description: Username needed to pull container image
+                type: string
+              deployments:
+                description: Deployment targets
+                items:
+                  description: Deployment defines instance specifications
+                  properties:
+                    cpuUtilization:
+                      type: integer
+                    enableAutoScaling:
+                      type: boolean
+                    instancesPerPop:
+                      description: number of instances per each PoP defined
+                      type: string
+                    maxInstancesPerPop:
+                      type: integer
+                    minInstancesPerPop:
+                      type: integer
+                    name:
+                      description: Name of the deployment instance
+                      type: string
+                    pops:
+                      description: CoxEdge PoPs - geographical location for the instance
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              firstBootSshKey:
+                description: First boot SSH key(s)
+                type: string
+              image:
+                description: Image is used if Type is set to container then Docker
+                  image that will be run in a container. The version can be specified
+                  (i.e. nginx:latest).
+                type: string
+              persistentStorages:
+                description: PersistentStorages mount storage volumes to your workload
+                  instances.
+                items:
+                  properties:
+                    path:
+                      type: string
+                    size:
+                      type: string
+                  required:
+                  - path
+                  - size
+                  type: object
+                type: array
+              ports:
+                description: Expose any ports required by your workload instances
+                items:
+                  properties:
+                    protocol:
+                      type: string
+                    publicPort:
+                      type: string
+                  required:
+                  - protocol
+                  - publicPort
+                  type: object
+                type: array
+              providerID:
+                description: ProviderID is the unique identifier as specified by the
+                  cloud provider.
+                type: string
+              specs:
+                type: string
+              type:
+                description: Type represents CoxEdge workload type VM or CONTAINER
+                type: string
+              userData:
+                description: User data compatible with cloud-init
+                type: string
+            type: object
+          status:
+            description: CoxMachineStatus defines the observed state of CoxMachine
+            properties:
+              errormessage:
+                type: string
+              ready:
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

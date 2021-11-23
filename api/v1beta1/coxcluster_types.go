@@ -18,6 +18,13 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+)
+
+const (
+	// ClusterFinalizer allows ReconcileCoxCluster to clean up DigitalOcean resources associated with DOCluster before
+	// removing it from the apiserver.
+	ClusterFinalizer = "cluster.capi.pf9.io"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -29,13 +36,15 @@ type CoxClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of CoxCluster. Edit coxcluster_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Foo                  string                `json:"foo,omitempty"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
 }
 
 // CoxClusterStatus defines the observed state of CoxCluster
 type CoxClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Ready bool `json:"ready"`
 }
 
 //+kubebuilder:object:root=true
