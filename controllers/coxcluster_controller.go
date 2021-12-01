@@ -105,7 +105,6 @@ func (r *CoxClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !cluster.DeletionTimestamp.IsZero() {
-		fmt.Println("HERE 104")
 		controllerutil.RemoveFinalizer(&coxCluster, coxv1.ClusterFinalizer)
 		return ctrl.Result{}, nil
 	}
@@ -114,7 +113,6 @@ func (r *CoxClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func (r *CoxClusterReconciler) reconcileNormal(coxCluster *coxv1.CoxCluster, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
 	controllerutil.AddFinalizer(coxCluster, coxv1.ClusterFinalizer)
-
 	workloads, _, err := r.CoxClient.GetWorkloads()
 	if err != nil {
 		return ctrl.Result{}, err

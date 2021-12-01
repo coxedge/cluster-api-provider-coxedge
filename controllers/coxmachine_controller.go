@@ -153,19 +153,20 @@ func (r *CoxMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scope.MachineScope, clusterScope *scope.ClusterScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Reconciling CoxMachine")
 	coxMachine := machineScope.CoxMachine
-
+	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
 	//find the workload by name
-	workloads, _, err := r.CoxClient.GetWorkloads()
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	for _, workload := range workloads.Data {
-		if workload.Name == machineScope.CoxMachine.Name {
-			machineScope.SetProviderID(workload.ID)
-			break
+	if machineScope.GetProviderID() == "" {
+		workloads, _, err := r.CoxClient.GetWorkloads()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		for _, workload := range workloads.Data {
+			if workload.Name == machineScope.CoxMachine.Name {
+				machineScope.SetProviderID(workload.ID)
+				break
+			}
 		}
 	}
-
 	if coxMachine.Status.ErrorMessage != nil {
 		machineScope.Info("Error state detected, skipping reconciliation")
 		return ctrl.Result{}, fmt.Errorf(*coxMachine.Status.ErrorMessage)
@@ -173,10 +174,10 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 
 	var (
 		workload *coxedge.Workload
-		resp     *coxedge.POSTResponse
-		// err        error
+		// resp     *coxedge.POSTResponse
+		err        error
 		workloadID string
-		errResp    *coxedge.ErrorResponse
+		// errResp    *coxedge.ErrorResponse
 	)
 	providerID := machineScope.GetInstanceID()
 	if providerID != "" {
@@ -200,7 +201,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			UserData:            machineScope.CoxMachine.Spec.UserData,
 		}
 
-		resp, errResp, err = r.CoxClient.CreateWorkload(data)
+		resp, errResp, err := r.CoxClient.CreateWorkload(data)
 
 		if err != nil {
 			jsn, _ := json.MarshalIndent(errResp, "   ", "   ")
@@ -214,16 +215,14 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			return ctrl.Result{}, err
 		}
 		machineScope.CoxMachine.Status.Ready = true
+		machineScope.SetProviderID(workloadID)
 	}
 
-	machineScope.SetProviderID(workloadID)
-	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
 
 func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope, clusterScope *scope.ClusterScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Deleting machine")
-
 	workloads, _, err := r.CoxClient.GetWorkloads()
 	if err != nil {
 		return ctrl.Result{}, err
@@ -244,7 +243,6 @@ func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 		}
 	}
 
-	fmt.Println("providerID", providerID)
 	if providerID != "" {
 		_, _, err := r.CoxClient.DeleteWorkload(providerID)
 		if err != nil {

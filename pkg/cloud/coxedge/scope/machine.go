@@ -18,6 +18,8 @@ package scope
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -117,12 +119,14 @@ func (m *MachineScope) GetProviderID() string {
 
 // SetProviderID sets the DOMachine providerID in spec from device id.
 func (m *MachineScope) SetProviderID(deviceID string) {
-	m.CoxMachine.Spec.ProviderID = deviceID
+	pid := fmt.Sprintf("coxedge://%s", deviceID)
+
+	m.CoxMachine.Spec.ProviderID = pid
 }
 
 // GetInstanceID returns the DOMachine droplet instance id by parsing Spec.ProviderID.
 func (m *MachineScope) GetInstanceID() string {
-	return m.CoxMachine.Spec.ProviderID
+	return strings.Replace(m.CoxMachine.Spec.ProviderID, "coxedge://", "", -1)
 }
 
 // SetErrorMessage sets the CoxMachine status error message.

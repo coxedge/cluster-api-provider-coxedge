@@ -126,8 +126,12 @@ func (c *Client) CreateWorkload(data *CreateWorkloadRequest) (*POSTResponse, *Er
 
 func (c *Client) DeleteWorkload(workloadID string) (*POSTResponse, *ErrorResponse, error) {
 	pr := &POSTResponse{}
+	wl, _, err := c.GetWorkload(workloadID)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	resp, err := c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads/%s?operation=delete", c.service, c.environment, workloadID), nil, pr)
+	resp, err := c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads/%s?operation=delete", c.service, c.environment, workloadID), wl.Data, pr)
 
 	return pr, resp, err
 }
