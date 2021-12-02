@@ -36,7 +36,7 @@ type CoxClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of CoxCluster. Edit coxcluster_types.go to remove/update
-	Foo                  string                `json:"foo,omitempty"`
+	Foo                  string                     `json:"foo,omitempty"`
 	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
 }
 

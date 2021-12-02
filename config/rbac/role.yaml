@@ -35,6 +35,26 @@ rules:
   - patch
   - update
 - apiGroups:
+  - cluster.capi.pf9.io
+  resources:
+  - coxmachines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cluster.capi.pf9.io
+  resources:
+  - coxmachines/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusters
@@ -52,23 +72,3 @@ rules:
   - get
   - list
   - watch
-- apiGroups:
-  - cox.cluster.capi.pf9.io
-  resources:
-  - coxmachines
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cox.cluster.capi.pf9.io
-  resources:
-  - coxmachines/status
-  verbs:
-  - get
-  - patch
-  - update

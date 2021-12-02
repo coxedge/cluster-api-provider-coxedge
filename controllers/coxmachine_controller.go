@@ -46,8 +46,8 @@ type CoxMachineReconciler struct {
 	CoxClient *coxedge.Client
 }
 
-//+kubebuilder:rbac:groups=cox.cluster.capi.pf9.io,resources=coxmachines,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cox.cluster.capi.pf9.io,resources=coxmachines/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=cluster.capi.pf9.io,resources=coxmachines,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cluster.capi.pf9.io,resources=coxmachines/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 

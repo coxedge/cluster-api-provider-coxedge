@@ -27,9 +27,25 @@ spec:
       containers:
       - command:
         - /manager
+        env:
+        - name: COX_API_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: coxedge
+              key: coxapikey
+        - name: COX_SERVICE
+          valueFrom:
+            configMapKeyRef:
+              name: coxedge
+              key: coxservice
+        - name: COX_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: coxedge
+              key: coxenvironment
         args:
         - --leader-elect
-        image: jasmingacic/controller:latest
+        image: controller
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

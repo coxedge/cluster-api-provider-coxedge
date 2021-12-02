@@ -44,15 +44,6 @@ spec:
                 items:
                   type: string
                 type: array
-              containerPassword:
-                description: Password needed to pull container image
-                type: string
-              containerServer:
-                description: Image repository server URL
-                type: string
-              containerUsername:
-                description: Username needed to pull container image
-                type: string
               deployments:
                 description: Deployment targets
                 items:
