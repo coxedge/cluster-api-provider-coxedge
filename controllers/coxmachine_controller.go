@@ -89,36 +89,10 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Info("Machine is missing cluster label or cluster does not exist")
 		return ctrl.Result{}, nil
 	}
-
-	logger = logger.WithValues("cluster", cluster.Name)
-
-	coxCluster := &coxv1.CoxCluster{}
-	coxClusterNamespacedName := client.ObjectKey{
-		Namespace: coxMachine.Namespace,
-		Name:      cluster.Spec.InfrastructureRef.Name,
-	}
-
-	if err := r.Get(ctx, coxClusterNamespacedName, coxCluster); err != nil {
-		logger.Info("CoxCluster is not available yet")
-		return ctrl.Result{}, nil
-	}
-	logger = logger.WithValues("coxCluster", coxCluster.Name)
-
-	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:     r.Client,
-		Logger:     logger,
-		Cluster:    cluster,
-		CoxCluster: coxCluster,
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
 		Client:     r.Client,
 		Logger:     logger,
 		Cluster:    cluster,
-		CoxCluster: coxCluster,
 		CoxMachine: coxMachine,
 	})
 	if err != nil {
@@ -134,10 +108,21 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted machines
 	if !coxMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, machineScope, clusterScope, logger)
+		return r.reconcileDelete(ctx, machineScope, logger)
 	}
 
-	return r.reconcile(ctx, machineScope, clusterScope, logger)
+	coxCluster := &coxv1.CoxCluster{}
+	coxClusterNamespacedName := client.ObjectKey{
+		Namespace: coxMachine.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+
+	if err := r.Get(ctx, coxClusterNamespacedName, coxCluster); err != nil {
+		logger.Info("CoxCluster is not available yet")
+		return ctrl.Result{}, nil
+	}
+
+	return r.reconcile(ctx, machineScope, logger)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -151,11 +136,11 @@ func (r *CoxMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scope.MachineScope, clusterScope *scope.ClusterScope, logger logr.Logger) (ctrl.Result, error) {
+func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Reconciling CoxMachine")
 	coxMachine := machineScope.CoxMachine
 	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
-	//find the workload by name
+
 	if machineScope.GetProviderID() == "" {
 		workloads, _, err := r.CoxClient.GetWorkloads()
 		if err != nil {
@@ -174,11 +159,9 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 	}
 
 	var (
-		workload *coxedge.Workload
-		// resp     *coxedge.POSTResponse
+		workload   *coxedge.Workload
 		err        error
 		workloadID string
-		// errResp    *coxedge.ErrorResponse
 	)
 	providerID := machineScope.GetInstanceID()
 	if providerID != "" {
@@ -216,40 +199,34 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			return ctrl.Result{}, err
 		}
 		machineScope.CoxMachine.Status.Ready = true
+
 		machineScope.SetProviderID(workloadID)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope, clusterScope *scope.ClusterScope, logger logr.Logger) (ctrl.Result, error) {
+func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Deleting machine")
-	workloads, _, err := r.CoxClient.GetWorkloads()
+	//check if workload exists
+	providerID := machineScope.GetInstanceID()
+	wl, _, err := r.CoxClient.GetWorkload(providerID)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	for _, workload := range workloads.Data {
-		if workload.Name == machineScope.CoxMachine.Name {
-			machineScope.SetProviderID(workload.ID)
-			break
+
+	if wl != nil {
+		if providerID != "" {
+			_, _, err := r.CoxClient.DeleteWorkload(providerID)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to delete the machine: %v", err)
+			}
 		}
+	} else {
+		logger.Info("unable to find CoxMachine")
 	}
 
-	providerID := machineScope.GetInstanceID()
-
-	if providerID != "" {
-		_, _, err := r.CoxClient.GetWorkload(providerID)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	if providerID != "" {
-		_, _, err := r.CoxClient.DeleteWorkload(providerID)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to delete the machine: %v", err)
-		}
-	}
 	controllerutil.RemoveFinalizer(machineScope.CoxMachine, coxv1.MachineFinalizer)
+
 	return ctrl.Result{}, nil
 }

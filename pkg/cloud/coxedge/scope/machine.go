@@ -38,11 +38,11 @@ import (
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
-	Client     client.Client
-	Logger     logr.Logger
-	Cluster    *clusterv1beta1.Cluster
-	Machine    *clusterv1beta1.Machine
-	CoxCluster *coxv1.CoxCluster
+	Client  client.Client
+	Logger  logr.Logger
+	Cluster *clusterv1beta1.Cluster
+	Machine *clusterv1beta1.Machine
+	// CoxCluster *coxv1.CoxCluster
 	CoxMachine *coxv1.CoxMachine
 }
 
@@ -53,15 +53,12 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if params.Client == nil {
 		return nil, errors.New("Client is required when creating a MachineScope")
 	}
-	if params.Machine == nil {
-		return nil, errors.New("Machine is required when creating a MachineScope")
-	}
 	if params.Cluster == nil {
 		return nil, errors.New("Cluster is required when creating a MachineScope")
 	}
-	if params.CoxCluster == nil {
-		return nil, errors.New("CoxCluster  is required when creating a MachineScope")
-	}
+	// if params.CoxCluster == nil {
+	// 	return nil, errors.New("CoxCluster  is required when creating a MachineScope")
+	// }
 	if params.CoxMachine == nil {
 		return nil, errors.New("CoxMachine is required when creating a MachineScope")
 	}
@@ -78,7 +75,6 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		client:      params.Client,
 		Cluster:     params.Cluster,
 		Machine:     params.Machine,
-		CoxCluster:  params.CoxCluster,
 		CoxMachine:  params.CoxMachine,
 		Logger:      params.Logger,
 		patchHelper: helper,
@@ -91,9 +87,9 @@ type MachineScope struct {
 	client      client.Client
 	patchHelper *patch.Helper
 
-	Cluster    *clusterv1beta1.Cluster
-	Machine    *clusterv1beta1.Machine
-	CoxCluster *coxv1.CoxCluster
+	Cluster *clusterv1beta1.Cluster
+	Machine *clusterv1beta1.Machine
+	// CoxCluster *coxv1.CoxCluster
 	CoxMachine *coxv1.CoxMachine
 }
 
