@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	// ClusterFinalizer allows ReconcileCoxCluster to clean up DigitalOcean resources associated with DOCluster before
-	// removing it from the apiserver.
-	ClusterFinalizer = "cluster.capi.pf9.io"
+	// ClusterFinalizer allows ReconcileCoxCluster to clean up Cox resources
+	// associated with CoxCluster before removing it from the apiserver.
+	ClusterFinalizer = "coxcluster.infrastructure.cluster.x-k8s.io"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -47,8 +47,10 @@ type CoxClusterStatus struct {
 	Ready bool `json:"ready"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CoxCluster belongs"
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Cluster infrastructure is ready for Cox instances"
 
 // CoxCluster is the Schema for the coxclusters API
 type CoxCluster struct {

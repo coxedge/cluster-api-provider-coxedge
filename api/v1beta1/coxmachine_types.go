@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	// ClusterFinalizer allows ReconcileCoxMachine to clean up DigitalOcean resources associated with DOCluster before
-	// removing it from the apiserver.
-	MachineFinalizer = "cluster.capi.pf9.io"
+	// MachineFinalizer allows ReconcileCoxMachine to clean up Cox resources
+	// associated with CoxCluster before removing it from the apiserver.
+	MachineFinalizer = "coxmachine.infrastructure.cluster.x-k8s.io"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -82,6 +82,9 @@ type CoxMachineStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CoxMachine belongs"
+// +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this CoxMachine"
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
 
 // CoxMachine is the Schema for the coxmachines API
 type CoxMachine struct {

@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: coxclusters.cluster.capi.pf9.io
+  name: coxclusters.infrastructure.cluster.x-k8s.io
 spec:
-  group: cluster.capi.pf9.io
+  group: infrastructure.cluster.x-k8s.io
   names:
     kind: CoxCluster
     listKind: CoxClusterList
@@ -16,7 +16,16 @@ spec:
     singular: coxcluster
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: Cluster to which this CoxCluster belongs
+      jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      name: Cluster
+      type: string
+    - description: Cluster infrastructure is ready for Cox instances
+      jsonPath: .status.ready
+      name: Ready
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: CoxCluster is the Schema for the coxclusters API

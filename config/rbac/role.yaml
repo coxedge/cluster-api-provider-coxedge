@@ -9,51 +9,22 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - events
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - get
   - list
   - watch
-- apiGroups:
-  - cluster.capi.pf9.io
-  resources:
-  - coxclusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cluster.capi.pf9.io
-  resources:
-  - coxclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - cluster.capi.pf9.io
-  resources:
-  - coxmachines
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cluster.capi.pf9.io
-  resources:
-  - coxmachines/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - cluster.x-k8s.io
   resources:
@@ -72,3 +43,43 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - coxclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - coxclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - coxmachines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - coxmachines/status
+  verbs:
+  - get
+  - patch
+  - update

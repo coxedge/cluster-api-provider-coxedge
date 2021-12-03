@@ -1,4 +1,4 @@
-domain: capi.pf9.io
+domain: cluster.x-k8s.io
 layout:
 - go.kubebuilder.io/v3
 projectName: cluster-api-provider-cox
@@ -8,8 +8,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: capi.pf9.io
-  group: cluster
+  group: infrastructure
   kind: CoxCluster
   path: github.com/platform9/cluster-api-provider-cox/api/v1beta1
   version: v1beta1
@@ -17,8 +16,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: capi.pf9.io
-  group: cluster
+  group: infrastructure
   kind: CoxMachine
   path: github.com/platform9/cluster-api-provider-cox/api/v1beta1
   version: v1beta1

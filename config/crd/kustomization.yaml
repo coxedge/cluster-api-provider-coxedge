@@ -6,8 +6,8 @@ commonLabels:
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-  - bases/cluster.capi.pf9.io_coxclusters.yaml
-  - bases/cluster.capi.pf9.io_coxmachines.yaml
+  - bases/infrastructure.cluster.x-k8s.io_coxclusters.yaml
+  - bases/infrastructure.cluster.x-k8s.io_coxmachines.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

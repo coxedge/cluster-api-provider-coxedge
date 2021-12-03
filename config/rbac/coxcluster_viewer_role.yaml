@@ -5,7 +5,7 @@ metadata:
   name: coxcluster-viewer-role
 rules:
 - apiGroups:
-  - cluster.capi.pf9.io
+  - infrastructure.cluster.x-k8s.io
   resources:
   - coxclusters
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - cluster.capi.pf9.io
+  - infrastructure.cluster.x-k8s.io
   resources:
   - coxclusters/status
   verbs:

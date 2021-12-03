@@ -4,4 +4,4 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
-  name: coxclusters.cluster.capi.pf9.io
+  name: coxclusters.infrastructure.cluster.x-k8s.io
