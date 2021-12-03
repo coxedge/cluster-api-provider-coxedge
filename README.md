@@ -4,18 +4,15 @@ Kubernetes-native declarative infrastructure for [Cox Edge](https://www.coxedge.
 
 ## Installation
 
-This assumes you already have a CAPI management plane.
+Before you can deploy the infrastructure controller, you’ll need to deploy Cluster API itself.
 
-To deploy from the latest build:
 ```shell
-# Build and push the controller image
-make docker-build docker-push IMG=$DOCKER_USER/cluster-api-provider-cox-controller:latest
-
-# Deploy the provider to your current cluster
-make deploy IMG=$DOCKER_USER/cluster-api-provider-cox-controller:latest
+clusterctl init
 ```
 
-Finally, ensure that the cox provider has the required parameters, create a ConfigMap with the following fields:
+Ensure that the Cox provider has the required credentials, create a ConfigMap with following fields:
+
+Create a file named `coxedge-config.yaml
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -28,6 +25,17 @@ data:
   coxenvironment: <COX_ENVIRONMENT>
 ```
 
+Apply the config:
 ```shell
 kubectl apply -f ./coxedge-config.yaml
 ```
+
+To deploy from the latest build:
+```shell
+# Build and push the controller image
+make docker-build docker-push IMG=$DOCKER_USER/cluster-api-provider-cox-controller:latest
+
+# Deploy the provider to your current cluster
+make deploy IMG=$DOCKER_USER/cluster-api-provider-cox-controller:latest
+```
+
