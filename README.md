@@ -21,7 +21,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: coxedge
-  namespace: cluster-api-provider-cox-system
+  namespace: capc-system
 data:
   coxapikey: <COX_API_KEY>
   coxservice: <COX_SERVICE>
