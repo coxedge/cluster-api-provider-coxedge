@@ -77,7 +77,6 @@ func TestGetWorkloads(t *testing.T) {
 		t.Fail()
 		return
 	}
-
 }
 
 func TestGetWorkload(t *testing.T) {
@@ -127,7 +126,7 @@ func TestGetInstance(t *testing.T) {
 func TestDeleteWorkload(t *testing.T) {
 	t.Fail()
 	c, _ := NewClient(service, environment, os.Getenv("COXEDGE_TOKEN"), nil)
-	tt, r, err := c.DeleteWorkload("36fac36d-8bf8-4ab4-8be1-4c4c7cb65da6")
+	tt, r, err := c.DeleteWorkload("a0f156b6-e136-47c8-8dc9-8d5facde3762")
 	t.Log(tt)
 	t.Log(r)
 	t.Log(err)

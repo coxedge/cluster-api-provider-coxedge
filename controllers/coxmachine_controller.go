@@ -170,6 +170,10 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			return ctrl.Result{}, err
 		}
 	}
+	bootstrapData, err := machineScope.GetRawBootstrapData()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if workload == nil {
 		//create workload
@@ -182,7 +186,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			FirstBootSSHKey:     machineScope.CoxMachine.Spec.FirstBootSSHKey,
 			Deployments:         machineScope.CoxMachine.Spec.Deployments,
 			Specs:               machineScope.CoxMachine.Spec.Specs,
-			UserData:            machineScope.CoxMachine.Spec.UserData,
+			UserData:            bootstrapData,
 		}
 
 		resp, errResp, err := r.CoxClient.CreateWorkload(data)
@@ -210,9 +214,13 @@ func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 	logger.Info("Deleting machine")
 	//check if workload exists
 	providerID := machineScope.GetInstanceID()
-	wl, _, err := r.CoxClient.GetWorkload(providerID)
+	wl, resp, err := r.CoxClient.GetWorkload(providerID)
 	if err != nil {
-		return ctrl.Result{}, err
+		if resp.StatusCode == 404 {
+			logger.Info("unable to find CoxMachine", "errors", resp.Errors)
+		} else {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if wl != nil {

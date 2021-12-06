@@ -187,8 +187,11 @@ func (c *Client) Do(req *http.Request, v interface{}) (*ErrorResponse, error) {
 	defer resp.Body.Close()
 	if resp.StatusCode > 299 {
 		o, _ := io.ReadAll(resp.Body)
-		errResp := &ErrorResponse{}
-		json.Unmarshal(o, errResp)
+		errResp := &ErrorResponse{
+			StatusCode: resp.StatusCode,
+			Errors:     string(o),
+		}
+
 		return errResp, fmt.Errorf("%s returned %d", req.URL, resp.StatusCode)
 	}
 	o, err := io.ReadAll(resp.Body)
@@ -338,14 +341,8 @@ type Metadata struct {
 }
 
 type ErrorResponse struct {
-	Errors []struct {
-		Message   string `json:"message"`
-		ErrorCode string `json:"errorCode"`
-		Context   struct {
-			ID   string `json:"id"`
-			Type string `json:"type"`
-		} `json:"context"`
-	} `json:"errors"`
+	StatusCode int
+	Errors     string
 }
 
 type Task struct {
