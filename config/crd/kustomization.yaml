@@ -8,6 +8,7 @@ commonLabels:
 resources:
   - bases/infrastructure.cluster.x-k8s.io_coxclusters.yaml
   - bases/infrastructure.cluster.x-k8s.io_coxmachines.yaml
+  - bases/infrastructure.cluster.x-k8s.io_coxmachinetemplates.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
