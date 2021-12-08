@@ -94,6 +94,7 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Logger:     logger,
 		Cluster:    cluster,
 		CoxMachine: coxMachine,
+		Machine:    machine,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Errorf("failed to create scope: %+v", err)
@@ -176,7 +177,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 	}
 
 	if workload == nil {
-		//create workload
+		// create workload
 		data := &coxedge.CreateWorkloadRequest{
 			Name:                machineScope.Name(),
 			Type:                machineScope.CoxMachine.Spec.Type,
@@ -192,8 +193,8 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		resp, errResp, err := r.CoxClient.CreateWorkload(data)
 
 		if err != nil {
-			jsn, _ := json.MarshalIndent(errResp, "   ", "   ")
-			return ctrl.Result{}, fmt.Errorf("error occured: %v reasons: %v", err, string(jsn))
+			jsn, _ := json.Marshal(errResp)
+			return ctrl.Result{}, fmt.Errorf("error occured while creating workload: %v - response: %v", err, string(jsn))
 		}
 
 		logger.Info("Waiting for workload to be provisioned")
@@ -212,7 +213,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 
 func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Deleting machine")
-	//check if workload exists
+	// check if workload exists
 	providerID := machineScope.GetInstanceID()
 	wl, resp, err := r.CoxClient.GetWorkload(providerID)
 	if err != nil {

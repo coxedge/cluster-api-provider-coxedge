@@ -43,6 +43,8 @@ spec:
             configMapKeyRef:
               name: coxedge
               key: coxenvironment
+        - name: COXEDGE_DEBUG
+          value: "true"
         args:
         - --leader-elect
         image: controller
