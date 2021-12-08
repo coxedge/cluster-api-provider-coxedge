@@ -2,6 +2,7 @@ package coxedge
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -140,4 +141,20 @@ func TestSomething(t *testing.T) {
 		t.Log(err)
 	}
 
+}
+
+func TestUpdate(t *testing.T) {
+	t.Fail()
+	c, _ := NewClient(service, environment, os.Getenv("COXEDGE_TOKEN"), nil)
+	wl, _, _ := c.GetWorkload("bceb070c-1fbe-46e9-a32e-79f1c6fb95b1")
+
+	fmt.Println(wl)
+	if wl == nil {
+		t.Fail()
+	}
+	data := wl.Data
+	data.EnvironmentVariable = append(data.EnvironmentVariable, EnvironmentVariable{Key: "JASMIN", Value: "jasmin"})
+	r, _, err := c.UpdateWorkload(wl.Data.ID, data)
+	t.Log(r)
+	t.Log(err)
 }

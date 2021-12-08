@@ -136,6 +136,14 @@ func (c *Client) DeleteWorkload(workloadID string) (*POSTResponse, *ErrorRespons
 	return pr, resp, err
 }
 
+func (c *Client)UpdateWorkload(workloadID string, workload WorkloadData) (*POSTResponse, *ErrorResponse, error) {
+	pr := &POSTResponse{}
+	
+	resp, err := c.DoRequest("PUT", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, workloadID), workload, pr)
+
+	return pr, resp, err
+}
+
 func (c *Client) DoRequest(method, path string, body, v interface{}) (*ErrorResponse, error) {
 	req, err := c.NewRequest(method, path, body)
 	if err != nil {
