@@ -21,7 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/predicates"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -126,32 +127,18 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.reconcile(ctx, machineScope, logger)
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *CoxMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&coxv1.CoxMachine{}).
-		Watches(
-			&source.Kind{Type: &clusterv1beta1.Machine{}},
-			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(coxv1.GroupVersion.WithKind("CoxMachine"))),
-		).
-		Complete(r)
-}
-
 func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Reconciling CoxMachine")
 	coxMachine := machineScope.CoxMachine
 	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
 
 	if machineScope.GetProviderID() == "" {
-		workloads, _, err := r.CoxClient.GetWorkloads()
-		if err != nil {
+		workload, err := r.CoxClient.GetWorkloadByName(machineScope.CoxMachine.Name)
+		if err != nil && err != coxedge.ErrWorkloadNotFound {
 			return ctrl.Result{}, err
 		}
-		for _, workload := range workloads.Data {
-			if workload.Name == machineScope.CoxMachine.Name {
-				machineScope.SetProviderID(workload.ID)
-				break
-			}
+		if workload != nil {
+			machineScope.SetProviderID(workload.ID)
 		}
 	}
 	if coxMachine.Status.ErrorMessage != nil {
@@ -238,4 +225,77 @@ func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 	controllerutil.RemoveFinalizer(machineScope.CoxMachine, coxv1.MachineFinalizer)
 
 	return ctrl.Result{}, nil
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *CoxMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	c, err := ctrl.NewControllerManagedBy(mgr).
+		For(&coxv1.CoxMachine{}).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))). // don't queue reconcile if resource is paused
+		Watches(
+			&source.Kind{Type: &clusterv1.Machine{}},
+			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(coxv1.GroupVersion.WithKind("CoxMachine"))),
+		).
+		Watches(
+			&source.Kind{Type: &coxv1.CoxCluster{}},
+			handler.EnqueueRequestsFromMapFunc(r.CoxClusterToCoxMachines(ctx)),
+		).
+		Build(r)
+	if err != nil {
+		return errors.Wrapf(err, "error creating controller")
+	}
+
+	clusterToObjectFunc, err := util.ClusterToObjectsMapper(r.Client, &coxv1.CoxMachineList{}, mgr.GetScheme())
+	if err != nil {
+		return errors.Wrapf(err, "failed to create mapper for Cluster to DOMachines")
+	}
+
+	// Add a watch on clusterv1.Cluster object for unpause & ready notifications.
+	if err := c.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		handler.EnqueueRequestsFromMapFunc(clusterToObjectFunc),
+		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+	); err != nil {
+		return errors.Wrapf(err, "failed adding a watch for ready clusters")
+	}
+
+	return nil
+}
+
+func (r *CoxMachineReconciler) CoxClusterToCoxMachines(ctx context.Context) handler.MapFunc {
+	log := ctrl.LoggerFrom(ctx)
+	return func(o client.Object) []ctrl.Request {
+		var result []ctrl.Request
+
+		c, ok := o.(*coxv1.CoxCluster)
+		if !ok {
+			log.Error(errors.Errorf("expected a CoxCluster but got a %T", o), "failed to get CoxMachine for CoxCluster")
+			return nil
+		}
+
+		cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
+		switch {
+		case apierrors.IsNotFound(err) || cluster == nil:
+			return result
+		case err != nil:
+			log.Error(err, "failed to get owning cluster")
+			return result
+		}
+
+		labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+		machineList := &clusterv1.MachineList{}
+		if err := r.List(ctx, machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+			log.Error(err, "failed to list Machines")
+			return nil
+		}
+		for _, m := range machineList.Items {
+			if m.Spec.InfrastructureRef.Name == "" {
+				continue
+			}
+			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
+			result = append(result, ctrl.Request{NamespacedName: name})
+		}
+
+		return result
+	}
 }

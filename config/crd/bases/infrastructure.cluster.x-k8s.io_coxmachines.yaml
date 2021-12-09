@@ -113,6 +113,8 @@ spec:
                       type: string
                     publicPort:
                       type: string
+                    publicPortDesc:
+                      type: string
                   required:
                   - protocol
                   - publicPort

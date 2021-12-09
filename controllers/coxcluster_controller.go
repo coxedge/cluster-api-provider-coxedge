@@ -18,11 +18,17 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -38,7 +44,8 @@ import (
 )
 
 const (
-	K8sApiPort = 6443
+	defaultKubeApiserverPort = 6443
+	defaultBackend           = "example.com:80"
 )
 
 // CoxClusterReconciler reconciles a CoxCluster object
@@ -106,41 +113,130 @@ func (r *CoxClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !cluster.DeletionTimestamp.IsZero() {
-		controllerutil.RemoveFinalizer(&coxCluster, coxv1.ClusterFinalizer)
-		return ctrl.Result{}, nil
+		return r.reconcileDelete(ctx, clusterScope)
 	}
-	return r.reconcileNormal(&coxCluster, clusterScope)
+	return r.reconcileNormal(ctx, clusterScope)
 }
 
-func (r *CoxClusterReconciler) reconcileNormal(coxCluster *coxv1.CoxCluster, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	coxCluster := clusterScope.CoxCluster
 	controllerutil.AddFinalizer(coxCluster, coxv1.ClusterFinalizer)
+
+	// Just a check that Cox Edge is accessible. No need for further
+	// infrastructure setup beyond this.
 	workloads, _, err := r.CoxClient.GetWorkloads()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	for _, workload := range workloads.Data {
-		if workload.Name == coxCluster.Name {
-			// get instance
-			clusterScope.CoxCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
-				Host: workload.AnycastIPAddress,
-				Port: K8sApiPort,
-			}
 
-			clusterScope.CoxCluster.Status.Ready = true
-			break
+	// Hacky way to retrieve the control plane endpoints from workloads
+	// warning: this might not be updated when the CoxMachine gets created.
+	var apiserverAddresses []string
+	for _, workload := range workloads.Data {
+		if !strings.HasPrefix(workload.Name, clusterScope.Name()+"-contr") {
+			continue
+		}
+
+		instances, _, err := r.CoxClient.GetInstances(workload.ID)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		for _, instance := range instances.Data {
+			apiserverAddresses = append(apiserverAddresses, fmt.Sprintf("%s:%d", instance.PublicIPAddress, defaultKubeApiserverPort))
 		}
 	}
+	if len(apiserverAddresses) == 0 {
+		// Needs to be set to some value
+		apiserverAddresses = []string{defaultBackend}
+	}
 
+	// Ensure that the loadBalancer is created
+	lbClient := coxedge.NewLoadBalancerHelper(r.CoxClient)
+	loadBalancerSpec := coxedge.LoadBalancerSpec{
+		Name:     genClusterLoadBalancerName(clusterScope.Name()),
+		Port:     fmt.Sprintf("%d", defaultKubeApiserverPort),
+		Backends: apiserverAddresses,
+	}
+	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
+	if err != nil {
+		if err != coxedge.ErrWorkloadNotFound {
+			return ctrl.Result{}, err
+		}
+		err = lbClient.CreateLoadBalancer(ctx, &loadBalancerSpec)
+	} else if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
+
+		existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
+		err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
+	}
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if existingLoadBalancer != nil && len(existingLoadBalancer.Status.PublicIP) == 0 {
+		log.Info("LoadBalancer is not ready yet.")
+		return ctrl.Result{
+			RequeueAfter: 10 * time.Second,
+		}, nil
+	}
+
+	// Set the controlPlaneRef
+	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	clusterScope.CoxCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+		Host: existingLoadBalancer.Status.PublicIP,
+		Port: int32(port),
+	}
+	clusterScope.CoxCluster.Status.Ready = true
+
+	// Hack: requeue as long as the load balancer does not yet have an appropriate backend.
+	if apiserverAddresses[0] == defaultBackend {
+		return ctrl.Result{
+			RequeueAfter: 10 * time.Second,
+		}, nil
+	}
+
+	log.Info("Cluster reconciled.")
+	return ctrl.Result{}, nil
+}
+
+func (r *CoxClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+	loadBalancerName := genClusterLoadBalancerName(clusterScope.Name())
+	lbClient := coxedge.NewLoadBalancerHelper(r.CoxClient)
+	err := lbClient.DeleteLoadBalancer(ctx, loadBalancerName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	controllerutil.RemoveFinalizer(clusterScope.CoxCluster, coxv1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CoxClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+func (r *CoxClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&coxv1.CoxCluster{}).
-		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
-			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(coxv1.GroupVersion.WithKind("CoxCluster"))),
-		).
-		Complete(r)
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))). // don't queue reconcile if resource is paused
+		Build(r)
+	if err != nil {
+		return errors.Wrapf(err, "error creating controller")
+	}
+
+	// Add a watch on clusterv1.Cluster object for unpause notifications.
+	if err = c.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(coxv1.GroupVersion.WithKind("CoxCluster"))),
+		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+	); err != nil {
+		return errors.Wrapf(err, "failed adding a watch for ready clusters")
+	}
+
+	return nil
+}
+
+func genClusterLoadBalancerName(clusterName string) string {
+	return fmt.Sprintf("%s-lb", clusterName)
 }

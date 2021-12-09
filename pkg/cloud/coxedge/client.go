@@ -8,15 +8,19 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"moul.io/http2curl"
 )
 
 const (
 	baseUrl = "https://portal.coxedge.com/api/v1/"
 )
-
+var (
+	ErrWorkloadNotFound = errors.New("workload not found")
+)
 type Client struct {
 	client      *http.Client
 	apiKey      string
@@ -49,7 +53,7 @@ func NewClient(service, environment, apiKey string, httpClient *http.Client) (*C
 	return client, nil
 }
 
-//curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads/549ec584-c62b-4647-9ca0-f04f9a88403d'
+// curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads/549ec584-c62b-4647-9ca0-f04f9a88403d'
 func (c *Client) GetWorkload(id string) (*Workload, *ErrorResponse, error) {
 	w := &Workload{}
 	resp, err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, id), nil, w)
@@ -59,7 +63,22 @@ func (c *Client) GetWorkload(id string) (*Workload, *ErrorResponse, error) {
 	return w, resp, nil
 }
 
-//curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads'
+func (c *Client) GetWorkloadByName(name string) (*WorkloadData, error) {
+	workloads, _, err := c.GetWorkloads()
+	if err != nil {
+		return nil, err
+	}
+	name = shortenName(name, 18)
+
+	for _, workload := range workloads.Data {
+		if workload.Name == name {
+			return &workload, nil
+		}
+	}
+	return nil, ErrWorkloadNotFound
+}
+
+// curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads'
 func (c *Client) GetWorkloads() (*Workloads, *ErrorResponse, error) {
 	w := &Workloads{}
 	resp, err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads", c.service, c.environment), nil, w)
@@ -69,7 +88,7 @@ func (c *Client) GetWorkloads() (*Workloads, *ErrorResponse, error) {
 	return w, resp, nil
 }
 
-//curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/instances?workloadId=5e1eb085-e9b3-447b-8a0e-c0147fc0ea4d' | jq
+// curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/instances?workloadId=5e1eb085-e9b3-447b-8a0e-c0147fc0ea4d' | jq
 func (c *Client) GetInstances(workloadID string) (*Instances, *ErrorResponse, error) {
 	i := &Instances{}
 	resp, err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances?workloadId=%s", c.service, c.environment, workloadID), nil, i)
@@ -110,14 +129,16 @@ func (c *Client) WaitForWorkload(taskID string) (string, error) {
 	case "FAILURE":
 		return "", fmt.Errorf("provisioning of workload failed")
 	default:
-		time.Sleep(1 * time.Second)
+		time.Sleep(5 * time.Second)
 		return c.WaitForWorkload(taskID)
 	}
 }
 
-//curl -X 'POST' -d '{"name":"capi-test-jg90","type":"VM","image":"stackpath-edge/centos-7:v202103021226","addAnyCastIpAddress":true,"ports":[{"protocol":"TCP","publicPort":"22"},{"protocol":"TCP","publicPort":"80"}],"firstBootSshKey":"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDgnV5MOhBqpQLt66KGlMKi/VYtmVPUt6epSVxnxrvjayNto5flG2sH4cGqdI2C0NE9/w7BFNdwWqp0mL2kYynC8l+SejW/qjx37hrEBWIXqdTyumchm0LD/7K7P7/kz14IV5NcHjNAsntPgKjx/fzJlbA1VCQYmnOq9RZeKme44rdHYW0BBfgMzekcEbyGTNDGp51NYhVafZLXsF8MzCKlJ+NCPlDqzD6w0fQe/qtMFO8NbFyS9/Lk4prp4HAWEyLSM26w1iLycYpbpWrHw6oc1U7bNIgbsa0ezDu4+OPkxeHz7aG5TeJ/dn0Wftzdfy2sy5PJy5MnYP3RTuROsOv+chu+AshZNNJ9A4ar5gFXSX40sQ0i4GzxZGrsKhW42ZP4sElzV74gEBQ2BOIOJUh4qGRtnjsQCJHBs7DLgpeVeGUq2B7p5zDAlJBGCXiHuTgIM8aVnpdnNrFwmr9SF66iaTrt7x8HinNOCIIztMU15Fk2AYSxSEuju1d3VcPt/d0= jasmingacic@Jasmins-MBP","deployments":[{"name":"wi-peter-qhl","pops":["WAW"],"instancesPerPop":"1"}],"specs":"SP-5"}' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads'
+// curl -X 'POST' -d '{"name":"capi-test-jg90","type":"VM","image":"stackpath-edge/centos-7:v202103021226","addAnyCastIpAddress":true,"ports":[{"protocol":"TCP","publicPort":"22"},{"protocol":"TCP","publicPort":"80"}],"firstBootSshKey":"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDgnV5MOhBqpQLt66KGlMKi/VYtmVPUt6epSVxnxrvjayNto5flG2sH4cGqdI2C0NE9/w7BFNdwWqp0mL2kYynC8l+SejW/qjx37hrEBWIXqdTyumchm0LD/7K7P7/kz14IV5NcHjNAsntPgKjx/fzJlbA1VCQYmnOq9RZeKme44rdHYW0BBfgMzekcEbyGTNDGp51NYhVafZLXsF8MzCKlJ+NCPlDqzD6w0fQe/qtMFO8NbFyS9/Lk4prp4HAWEyLSM26w1iLycYpbpWrHw6oc1U7bNIgbsa0ezDu4+OPkxeHz7aG5TeJ/dn0Wftzdfy2sy5PJy5MnYP3RTuROsOv+chu+AshZNNJ9A4ar5gFXSX40sQ0i4GzxZGrsKhW42ZP4sElzV74gEBQ2BOIOJUh4qGRtnjsQCJHBs7DLgpeVeGUq2B7p5zDAlJBGCXiHuTgIM8aVnpdnNrFwmr9SF66iaTrt7x8HinNOCIIztMU15Fk2AYSxSEuju1d3VcPt/d0= jasmingacic@Jasmins-MBP","deployments":[{"name":"wi-peter-qhl","pops":["WAW"],"instancesPerPop":"1"}],"specs":"SP-5"}' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads'
 func (c *Client) CreateWorkload(data *CreateWorkloadRequest) (*POSTResponse, *ErrorResponse, error) {
 	pr := &POSTResponse{}
+
+	data.Name = shortenName(data.Name, 18)
 
 	resp, err := c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads", c.service, c.environment), data, pr)
 
@@ -136,9 +157,10 @@ func (c *Client) DeleteWorkload(workloadID string) (*POSTResponse, *ErrorRespons
 	return pr, resp, err
 }
 
-func (c *Client)UpdateWorkload(workloadID string, workload WorkloadData) (*POSTResponse, *ErrorResponse, error) {
+func (c *Client) UpdateWorkload(workloadID string, workload WorkloadData) (*POSTResponse, *ErrorResponse, error) {
 	pr := &POSTResponse{}
-	
+	workload.Name = shortenName(workload.Name, 18)
+
 	resp, err := c.DoRequest("PUT", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, workloadID), workload, pr)
 
 	return pr, resp, err
@@ -168,6 +190,7 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 	if body != nil {
 		bodyBytes, _ := json.Marshal(body)
 		req, _ = http.NewRequest(method, u.String(), bytes.NewBuffer(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
 	} else {
 		req, _ = http.NewRequest(method, u.String(), nil)
 
@@ -213,6 +236,25 @@ func (c *Client) Do(req *http.Request, v interface{}) (*ErrorResponse, error) {
 	}
 
 	return nil, err
+}
+
+func shortenName(name string, limit int) string {
+	if len(name) <= limit {
+		return name
+	}
+
+	parts := strings.Split(name, "-")
+	var postfix string
+	var resize string
+	if len(parts) <= 1 {
+		resize = strings.Join(parts, "-")
+	} else {
+		postfix = "-" + parts[len(parts) - 1]
+		resize = strings.Join(parts[:len(parts) - 1], "-")
+	}
+
+	trimRange := len(name) - limit
+	return resize[:len(resize) - trimRange] + postfix
 }
 
 type Workload struct {
@@ -283,12 +325,13 @@ type POSTResponse struct {
 	TaskStatus string `json:"taskStatus,omitempty"`
 }
 type Port struct {
-	Protocol   string `json:"protocol"`
-	PublicPort string `json:"publicPort"`
+	Protocol       string `json:"protocol"`
+	PublicPort     string `json:"publicPort"`
+	PublicPortDesc string `json:"publicPortDesc,omitempty"`
 }
 type EnvironmentVariable struct {
-	Key   string `json:"key,omitempty"`
-	Value string `json:"value,omitempty"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 // Deployment defines instance specifications
