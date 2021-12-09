@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
@@ -130,8 +131,29 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Reconciling CoxMachine")
 	coxMachine := machineScope.CoxMachine
+
+	// Add the finalizer to the CoxMachine if it does not exist yet.
 	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
 
+	// Make sure that the cluster infrastructure is ready.
+	if !machineScope.Cluster.Status.InfrastructureReady {
+		machineScope.Info("Cluster infrastructure is not ready yet")
+		return reconcile.Result{}, nil
+	}
+
+	// Make sure that bootstrap data is available and populated.
+	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
+		machineScope.Info("Bootstrap data secret reference is not yet available")
+		return reconcile.Result{}, nil
+	}
+
+	// If the CoxMachine is in an error state, return early.
+	if coxMachine.Status.ErrorMessage != nil {
+		machineScope.Info("Error state detected, skipping reconciliation")
+		return ctrl.Result{}, fmt.Errorf(*coxMachine.Status.ErrorMessage)
+	}
+
+	// Set the ProviderID if the CoxMachine is already present
 	if machineScope.GetProviderID() == "" {
 		workload, err := r.CoxClient.GetWorkloadByName(machineScope.CoxMachine.Name)
 		if err != nil && err != coxedge.ErrWorkloadNotFound {
@@ -140,10 +162,6 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		if workload != nil {
 			machineScope.SetProviderID(workload.ID)
 		}
-	}
-	if coxMachine.Status.ErrorMessage != nil {
-		machineScope.Info("Error state detected, skipping reconciliation")
-		return ctrl.Result{}, fmt.Errorf(*coxMachine.Status.ErrorMessage)
 	}
 
 	var (
