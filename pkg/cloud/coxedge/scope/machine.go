@@ -130,6 +130,11 @@ func (m *MachineScope) SetErrorMessage(v error) {
 	m.CoxMachine.Status.ErrorMessage = pointer.StringPtr(v.Error())
 }
 
+// SetAddresses sets the address status.
+func (m *MachineScope) SetAddresses(addrs []corev1.NodeAddress) {
+	m.CoxMachine.Status.Addresses = addrs
+}
+
 // GetRawBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
 func (m *MachineScope) GetRawBootstrapData() (string, error) {
 	if m.Machine.Spec.Bootstrap.DataSecretName == nil {

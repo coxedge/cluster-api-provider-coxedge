@@ -20,10 +20,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/cluster-api/util/predicates"
+	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/predicates"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -211,7 +213,32 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		machineScope.CoxMachine.Status.Ready = true
 
 		machineScope.SetProviderID(workloadID)
+		return ctrl.Result{}, nil
 	}
+
+	instances, _, err := r.CoxClient.GetInstances(workload.Data.ID)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if len(instances.Data) == 0 {
+		logger.Info("Instance not ready yet.")
+		return ctrl.Result{
+			RequeueAfter: 1 * time.Minute,
+		}, nil
+	}
+	// For a CoxMachine we currently just assume 1 CAPI Machine == 1 Cox Workload == 1 Cox Instance
+	instance := instances.Data[0]
+
+	machineScope.SetAddresses([]corev1.NodeAddress{
+		{
+			Type: corev1.NodeExternalIP,
+			Address: instance.PublicIPAddress,
+		},
+		{
+			Type: corev1.NodeInternalIP,
+			Address: instance.IPAddress,
+		},
+	})
 
 	return ctrl.Result{}, nil
 }

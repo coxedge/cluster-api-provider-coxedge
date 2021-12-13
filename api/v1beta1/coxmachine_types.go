@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -76,6 +77,9 @@ type CoxMachineStatus struct {
 
 	Ready        bool    `json:"ready,omitempty"`
 	ErrorMessage *string `json:"errormessage,omitempty"`
+
+	// Addresses contains the IP and/or DNS addresses of the CoxEdge instances.
+	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 }
 
 // PersistentStorages: [{path: "/var/lib/data", size: "2"}]

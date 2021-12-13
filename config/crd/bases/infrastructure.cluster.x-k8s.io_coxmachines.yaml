@@ -136,6 +136,24 @@ spec:
           status:
             description: CoxMachineStatus defines the observed state of CoxMachine
             properties:
+              addresses:
+                description: Addresses contains the IP and/or DNS addresses of the
+                  CoxEdge instances.
+                items:
+                  description: NodeAddress contains information for the node's address.
+                  properties:
+                    address:
+                      description: The node address.
+                      type: string
+                    type:
+                      description: Node address type, one of Hostname, ExternalIP
+                        or InternalIP.
+                      type: string
+                  required:
+                  - address
+                  - type
+                  type: object
+                type: array
               errormessage:
                 type: string
               ready:
