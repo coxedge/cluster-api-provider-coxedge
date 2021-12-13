@@ -84,8 +84,6 @@ type CoxMachineStatus struct {
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 }
 
-// PersistentStorages: [{path: "/var/lib/data", size: "2"}]
-
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CoxMachine belongs"

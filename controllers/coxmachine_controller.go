@@ -184,11 +184,16 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		return ctrl.Result{}, err
 	}
 
+	machineType := machineScope.CoxMachine.Spec.Type
+	if len(machineType) == 0 {
+		machineType = coxedge.TypeVM
+	}
+
 	if workload == nil {
 		// create workload
 		data := &coxedge.CreateWorkloadRequest{
 			Name:                machineScope.Name(),
-			Type:                machineScope.CoxMachine.Spec.Type,
+			Type:                machineType,
 			Image:               machineScope.CoxMachine.Spec.Image,
 			AddAnyCastIPAddress: machineScope.CoxMachine.Spec.AddAnyCastIPAddress,
 			Ports:               machineScope.CoxMachine.Spec.Ports,
@@ -232,11 +237,11 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 
 	machineScope.SetAddresses([]corev1.NodeAddress{
 		{
-			Type: corev1.NodeExternalIP,
+			Type:    corev1.NodeExternalIP,
 			Address: instance.PublicIPAddress,
 		},
 		{
-			Type: corev1.NodeInternalIP,
+			Type:    corev1.NodeInternalIP,
 			Address: instance.IPAddress,
 		},
 	})

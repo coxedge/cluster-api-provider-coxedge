@@ -326,11 +326,13 @@ type POSTResponse struct {
 	TaskId     string `json:"taskId,omitempty"`
 	TaskStatus string `json:"taskStatus,omitempty"`
 }
+
 type Port struct {
 	Protocol       string `json:"protocol"`
 	PublicPort     string `json:"publicPort"`
 	PublicPortDesc string `json:"publicPortDesc,omitempty"`
 }
+
 type EnvironmentVariable struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`

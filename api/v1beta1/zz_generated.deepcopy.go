@@ -7,6 +7,7 @@ package v1beta1
 
 import (
 	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
+	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -172,6 +173,11 @@ func (in *CoxMachineSpec) DeepCopyInto(out *CoxMachineSpec) {
 		*out = make([]coxedge.Port, len(*in))
 		copy(*out, *in)
 	}
+	if in.SSHAuthorizedKeys != nil {
+		in, out := &in.SSHAuthorizedKeys, &out.SSHAuthorizedKeys
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Deployments != nil {
 		in, out := &in.Deployments, &out.Deployments
 		*out = make([]coxedge.Deployment, len(*in))
@@ -201,6 +207,11 @@ func (in *CoxMachineStatus) DeepCopyInto(out *CoxMachineStatus) {
 		in, out := &in.ErrorMessage, &out.ErrorMessage
 		*out = new(string)
 		**out = **in
+	}
+	if in.Addresses != nil {
+		in, out := &in.Addresses, &out.Addresses
+		*out = make([]v1.NodeAddress, len(*in))
+		copy(*out, *in)
 	}
 }
 

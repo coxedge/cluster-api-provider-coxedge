@@ -83,9 +83,6 @@ spec:
                       type: array
                   type: object
                 type: array
-              firstBootSshKey:
-                description: First boot SSH key(s)
-                type: string
               image:
                 description: Image is used if Type is set to container then Docker
                   image that will be run in a container. The version can be specified
@@ -126,6 +123,13 @@ spec:
                 type: string
               specs:
                 type: string
+              sshAuthorizedKeys:
+                description: SSHAuthorizedKeys contains the public SSH keys that should
+                  be added to the machine on first boot. In the CoxEdge API this field
+                  is equivalent to `firstBootSSHKey`.
+                items:
+                  type: string
+                type: array
               type:
                 description: Type represents CoxEdge workload type VM or CONTAINER
                 type: string
