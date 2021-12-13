@@ -152,7 +152,6 @@ func parseLoadBalancerFromWorkload(workload *WorkloadData, workloadInstances []I
 	}, nil
 }
 
-
 func parseLoadBalancerStatusFromWorkload(workload *WorkloadData, workloadInstances []InstanceData) (*LoadBalancerStatus, error) {
 	status := &LoadBalancerStatus{}
 

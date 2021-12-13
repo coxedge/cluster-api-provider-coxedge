@@ -18,9 +18,11 @@ import (
 const (
 	baseUrl = "https://portal.coxedge.com/api/v1/"
 )
+
 var (
 	ErrWorkloadNotFound = errors.New("workload not found")
 )
+
 type Client struct {
 	client      *http.Client
 	apiKey      string
@@ -249,12 +251,12 @@ func shortenName(name string, limit int) string {
 	if len(parts) <= 1 {
 		resize = strings.Join(parts, "-")
 	} else {
-		postfix = "-" + parts[len(parts) - 1]
-		resize = strings.Join(parts[:len(parts) - 1], "-")
+		postfix = "-" + parts[len(parts)-1]
+		resize = strings.Join(parts[:len(parts)-1], "-")
 	}
 
 	trimRange := len(name) - limit
-	return resize[:len(resize) - trimRange] + postfix
+	return resize[:len(resize)-trimRange] + postfix
 }
 
 type Workload struct {

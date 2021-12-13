@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -191,7 +192,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			Image:               machineScope.CoxMachine.Spec.Image,
 			AddAnyCastIPAddress: machineScope.CoxMachine.Spec.AddAnyCastIPAddress,
 			Ports:               machineScope.CoxMachine.Spec.Ports,
-			FirstBootSSHKey:     machineScope.CoxMachine.Spec.FirstBootSSHKey,
+			FirstBootSSHKey:     strings.Join(machineScope.CoxMachine.Spec.SSHAuthorizedKeys, "\n"),
 			Deployments:         machineScope.CoxMachine.Spec.Deployments,
 			Specs:               machineScope.CoxMachine.Spec.Specs,
 			UserData:            bootstrapData,

@@ -61,7 +61,7 @@ type CoxCluster struct {
 	Status CoxClusterStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // CoxClusterList contains a list of CoxCluster
 type CoxClusterList struct {

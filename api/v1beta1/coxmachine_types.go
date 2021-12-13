@@ -43,7 +43,7 @@ type CoxMachineSpec struct {
 	// Type represents CoxEdge workload type VM or CONTAINER
 	Type string `json:"type,omitempty"`
 
-	//AddAnyCastIPAddress enables AnyCast IP Address
+	// AddAnyCastIPAddress enables AnyCast IP Address
 	// +optional
 	AddAnyCastIPAddress bool `json:"addanycastipaddress,omitempty"`
 
@@ -54,10 +54,12 @@ type CoxMachineSpec struct {
 	// Expose any ports required by your workload instances
 	Ports []coxedge.Port `json:"ports,omitempty"`
 
-	//First boot SSH key(s)
-	FirstBootSSHKey string `json:"firstBootSshKey,omitempty"`
+	// SSHAuthorizedKeys contains the public SSH keys that should be added to
+	// the machine on first boot. In the CoxEdge API this field is equivalent
+	// to `firstBootSSHKey`.
+	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
 
-	//Deployment targets
+	// Deployment targets
 	Deployments []coxedge.Deployment `json:"deployments,omitempty"`
 	Specs       string               `json:"specs,omitempty"`
 
@@ -84,8 +86,8 @@ type CoxMachineStatus struct {
 
 // PersistentStorages: [{path: "/var/lib/data", size: "2"}]
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CoxMachine belongs"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this CoxMachine"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
@@ -99,7 +101,7 @@ type CoxMachine struct {
 	Status CoxMachineStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // CoxMachineList contains a list of CoxMachine
 type CoxMachineList struct {
