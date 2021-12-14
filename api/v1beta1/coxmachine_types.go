@@ -88,6 +88,7 @@ type CoxMachineStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CoxMachine belongs"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this CoxMachine"
+// +kubebuilder:printcolumn:name="WorkloadID",type="string",JSONPath=".spec.providerID",description="CoxEdge workload ID"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
 
 // CoxMachine is the Schema for the coxmachines API

@@ -311,7 +311,7 @@ type CreateWorkloadRequest struct {
 	AddAnyCastIPAddress           bool                  `json:"addAnyCastIpAddress,omitempty"`
 	PersistenceStorageTotalSize   int                   `json:"persistenceStorageTotalSize"`
 	Ports                         []Port                `json:"ports,omitempty"`
-	FirstBootSSHKey               string                `json:"firstBootSshKey,omitempty"`
+	FirstBootSSHKey               string                `json:"firstBootSshKey"`
 	Deployments                   []Deployment          `json:"deployments,omitempty"`
 	Specs                         string                `json:"specs,omitempty"`
 	PersistentStorages            []PersistentStorage   `json:"persistentStorages,omitempty"`

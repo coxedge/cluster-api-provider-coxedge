@@ -21,6 +21,10 @@ spec:
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
+    - description: API Endpoint
+      jsonPath: .spec.controlPlaneEndpoint
+      name: Endpoint
+      type: string
     - description: Cluster infrastructure is ready for Cox instances
       jsonPath: .status.ready
       name: Ready

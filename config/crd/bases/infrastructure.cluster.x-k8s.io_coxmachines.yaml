@@ -25,6 +25,10 @@ spec:
       jsonPath: .metadata.ownerReferences[?(@.kind=="Machine")].name
       name: Machine
       type: string
+    - description: CoxEdge workload ID
+      jsonPath: .spec.providerID
+      name: WorkloadID
+      type: string
     - description: Machine ready status
       jsonPath: .status.ready
       name: Ready
