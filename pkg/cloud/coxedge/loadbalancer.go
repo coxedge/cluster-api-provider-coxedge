@@ -55,7 +55,7 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 		Name:                payload.Name,
 		Type:                TypeContainer,
 		Image:               "erwinvaneyk/nginx-lb:latest",
-		AddAnyCastIPAddress: false,
+		AddAnyCastIPAddress: true,
 		Ports: []Port{
 			{
 				Protocol:   PortProtocolTCP,
@@ -155,8 +155,12 @@ func parseLoadBalancerFromWorkload(workload *WorkloadData, workloadInstances []I
 func parseLoadBalancerStatusFromWorkload(workload *WorkloadData, workloadInstances []InstanceData) (*LoadBalancerStatus, error) {
 	status := &LoadBalancerStatus{}
 
-	if len(workloadInstances) > 0 {
-		status.PublicIP = workloadInstances[0].PublicIPAddress
+	for _, inst := range workloadInstances {
+		if inst.Status == "RUNNING" {
+			if workload != nil {
+				status.PublicIP = workload.AnycastIPAddress
+			}
+		}
 	}
 
 	return status, nil
