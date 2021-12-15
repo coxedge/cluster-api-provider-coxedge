@@ -219,10 +219,11 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		machineScope.CoxMachine.Status.Ready = true
 
 		machineScope.SetProviderID(workloadID)
-		return ctrl.Result{}, nil
+	} else {
+		workloadID = workload.Data.ID
 	}
 
-	instances, _, err := r.CoxClient.GetInstances(workload.Data.ID)
+	instances, _, err := r.CoxClient.GetInstances(workloadID)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -246,7 +247,10 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		},
 	})
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{
+		// Requeue to make sure that the CoxMachine controller detects when the VM died on CoxEdge
+		RequeueAfter: 5 * time.Minute,
+	}, nil
 }
 
 func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
