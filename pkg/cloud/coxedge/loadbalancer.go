@@ -76,7 +76,7 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 			{
 				Name: "default",
 				Pops: []string{
-					PopLosAngeles,
+					PopLasVegas,
 				},
 				InstancesPerPop: "1",
 			},

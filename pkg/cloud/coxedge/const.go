@@ -11,6 +11,7 @@ const (
 	TypeVM        = "VM"
 
 	PopLosAngeles = "LAX"
+	PopLasVegas   = "LAS"
 
 	PortProtocolTCP = "TCP"
 )
