@@ -77,6 +77,7 @@ type CoxMachineSpec struct {
 type CoxMachineStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
+	TaskID       string  `json:"taskid,omitempty"`
 	Ready        bool    `json:"ready,omitempty"`
 	ErrorMessage *string `json:"errormessage,omitempty"`
 

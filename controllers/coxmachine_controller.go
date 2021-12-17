@@ -162,6 +162,29 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		if err != nil && err != coxedge.ErrWorkloadNotFound {
 			return ctrl.Result{}, err
 		}
+
+		// If machine is not ready check for provisioning status
+		if !machineScope.CoxMachine.Status.Ready && machineScope.CoxMachine.Status.TaskID != "" {
+			t, err := r.CoxClient.GetTask(machineScope.CoxMachine.Status.TaskID)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			switch t.Data.Status {
+			case "SUCCESS":
+				// once the workload is "RUNNING" set provider ID and machine status to ready
+				machineScope.CoxMachine.Status.Ready = true
+				machineScope.SetProviderID(t.Data.Result.WorkloadID)
+			case "FAILURE":
+				return ctrl.Result{}, fmt.Errorf("provisioning of workload failed")
+			default:
+				return ctrl.Result{
+					// Requeue until the machine is ready
+					RequeueAfter: 1 * time.Minute,
+				}, nil
+			}
+		}
+
 		if workload != nil {
 			machineScope.SetProviderID(workload.ID)
 		}
@@ -210,15 +233,12 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			return ctrl.Result{}, fmt.Errorf("error occured while creating workload: %v - response: %v", err, string(jsn))
 		}
 
-		logger.Info("Waiting for workload to be provisioned")
-		workloadID, err = r.CoxClient.WaitForWorkload(resp.TaskId)
-		if err != nil {
-			machineScope.SetErrorMessage(err)
-			return ctrl.Result{}, err
-		}
-		machineScope.CoxMachine.Status.Ready = true
+		// Since the workload has just been created we have to requeue and poll for provisioning status with task ID
+		machineScope.CoxMachine.Status.TaskID = resp.TaskId
 
-		machineScope.SetProviderID(workloadID)
+		return ctrl.Result{
+			RequeueAfter: 1 * time.Minute,
+		}, nil
 	} else {
 		workloadID = workload.Data.ID
 	}
