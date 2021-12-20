@@ -170,7 +170,9 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 				return ctrl.Result{}, err
 			}
 
-			switch t.Data.Status {
+			machineScope.CoxMachine.Status.TaskStatus = t.Data.Status
+
+			switch machineScope.CoxMachine.Status.TaskStatus {
 			case "SUCCESS":
 				// once the workload is "RUNNING" set provider ID and machine status to ready
 				machineScope.CoxMachine.Status.Ready = true

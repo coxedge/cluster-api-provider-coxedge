@@ -166,7 +166,9 @@ spec:
                 type: string
               ready:
                 type: boolean
-              taskid:
+              taskID:
+                type: string
+              taskStatus:
                 type: string
             type: object
         type: object
