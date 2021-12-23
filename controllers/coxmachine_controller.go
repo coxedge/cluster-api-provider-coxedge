@@ -221,11 +221,35 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			Type:                machineType,
 			Image:               machineScope.CoxMachine.Spec.Image,
 			AddAnyCastIPAddress: machineScope.CoxMachine.Spec.AddAnyCastIPAddress,
-			Ports:               machineScope.CoxMachine.Spec.Ports,
 			FirstBootSSHKey:     strings.Join(machineScope.CoxMachine.Spec.SSHAuthorizedKeys, "\n"),
-			Deployments:         machineScope.CoxMachine.Spec.Deployments,
 			Specs:               machineScope.CoxMachine.Spec.Specs,
 			UserData:            bootstrapData,
+		}
+
+		data.Ports = []coxedge.Port{}
+
+		for _, port := range machineScope.CoxMachine.Spec.Ports {
+			p := coxedge.Port{
+				Protocol:       port.Protocol,
+				PublicPort:     port.PublicPort,
+				PublicPortDesc: port.PublicPortDesc,
+			}
+
+			data.Ports = append(data.Ports, p)
+		}
+
+		data.Deployments = []coxedge.Deployment{}
+		for _, deployment := range machineScope.CoxMachine.Spec.Deployments {
+			d := coxedge.Deployment{
+				Name:               deployment.Name,
+				Pops:               deployment.Pops,
+				EnableAutoScaling:  deployment.EnableAutoScaling,
+				InstancesPerPop:    deployment.InstancesPerPop,
+				CPUUtilization:     deployment.CPUUtilization,
+				MinInstancesPerPop: deployment.MinInstancesPerPop,
+				MaxInstancesPerPop: deployment.MaxInstancesPerPop,
+			}
+			data.Deployments = append(data.Deployments, d)
 		}
 
 		resp, errResp, err := r.CoxClient.CreateWorkload(data)

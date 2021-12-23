@@ -91,6 +91,8 @@ spec:
                         description: PersistentStorages mount storage volumes to your
                           workload instances.
                         items:
+                          description: PersistentStorage defines instances' mounted
+                            persistend storage options
                           properties:
                             path:
                               type: string
@@ -104,6 +106,7 @@ spec:
                       ports:
                         description: Expose any ports required by your workload instances
                         items:
+                          description: Port defines instance network policies
                           properties:
                             protocol:
                               type: string

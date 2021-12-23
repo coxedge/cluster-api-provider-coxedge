@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -49,10 +48,10 @@ type CoxMachineSpec struct {
 
 	// PersistentStorages mount storage volumes to your workload instances.
 	// +optional
-	PersistentStorages []coxedge.PersistentStorage `json:"persistentStorages,omitempty"`
+	PersistentStorages []PersistentStorage `json:"persistentStorages,omitempty"`
 
 	// Expose any ports required by your workload instances
-	Ports []coxedge.Port `json:"ports,omitempty"`
+	Ports []Port `json:"ports,omitempty"`
 
 	// SSHAuthorizedKeys contains the public SSH keys that should be added to
 	// the machine on first boot. In the CoxEdge API this field is equivalent
@@ -60,8 +59,8 @@ type CoxMachineSpec struct {
 	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
 
 	// Deployment targets
-	Deployments []coxedge.Deployment `json:"deployments,omitempty"`
-	Specs       string               `json:"specs,omitempty"`
+	Deployments []Deployment `json:"deployments,omitempty"`
+	Specs       string       `json:"specs,omitempty"`
 
 	// Image is used if Type is set to container then Docker image that will be run in a container. The version can be specified (i.e. nginx:latest).
 	Image string `json:"image,omitempty"`
@@ -71,6 +70,38 @@ type CoxMachineSpec struct {
 	Commands []string `json:"commands,omitempty"`
 	// User data compatible with cloud-init
 	UserData string `json:"userData,omitempty"`
+}
+
+// Deployment defines instance specifications
+type Deployment struct {
+	// Name of the deployment instance
+	Name string `json:"name,omitempty"`
+	// CoxEdge PoPs - geographical location for the instance
+	Pops []string `json:"pops,omitempty"`
+	// +optional
+	EnableAutoScaling bool `json:"enableAutoScaling,omitempty"`
+	// number of instances per each PoP defined
+	// +optional
+	InstancesPerPop string `json:"instancesPerPop,omitempty"`
+	// +optional
+	CPUUtilization int `json:"cpuUtilization,omitempty"`
+	// +optional
+	MinInstancesPerPop int `json:"minInstancesPerPop,omitempty"`
+	// +optional
+	MaxInstancesPerPop int `json:"maxInstancesPerPop,omitempty"`
+}
+
+// Port defines instance network policies
+type Port struct {
+	Protocol       string `json:"protocol"`
+	PublicPort     string `json:"publicPort"`
+	PublicPortDesc string `json:"publicPortDesc,omitempty"`
+}
+
+// PersistentStorage defines instances' mounted persistend storage options
+type PersistentStorage struct {
+	Path string `json:"path"`
+	Size string `json:"size"`
 }
 
 // CoxMachineStatus defines the observed state of CoxMachine
