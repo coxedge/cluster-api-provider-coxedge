@@ -238,5 +238,5 @@ func (r *CoxClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 }
 
 func genClusterLoadBalancerName(clusterName string) string {
-	return fmt.Sprintf("%s-lb", clusterName)
+	return fmt.Sprintf("lb-%s", clusterName)
 }
