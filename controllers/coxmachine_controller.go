@@ -47,8 +47,7 @@ import (
 // CoxMachineReconciler reconciles a CoxMachine object
 type CoxMachineReconciler struct {
 	client.Client
-	Scheme    *runtime.Scheme
-	CoxClient *coxedge.Client
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
@@ -158,14 +157,14 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 
 	// Set the ProviderID if the CoxMachine is already present
 	if machineScope.GetProviderID() == "" {
-		workload, err := r.CoxClient.GetWorkloadByName(machineScope.CoxMachine.Name)
+		workload, err := machineScope.CoxClient.GetWorkloadByName(machineScope.CoxMachine.Name)
 		if err != nil && err != coxedge.ErrWorkloadNotFound {
 			return ctrl.Result{}, err
 		}
 
 		// If machine is not ready check for provisioning status
 		if !machineScope.CoxMachine.Status.Ready && machineScope.CoxMachine.Status.TaskID != "" {
-			t, err := r.CoxClient.GetTask(machineScope.CoxMachine.Status.TaskID)
+			t, err := machineScope.CoxClient.GetTask(machineScope.CoxMachine.Status.TaskID)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -199,7 +198,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 	)
 	providerID := machineScope.GetInstanceID()
 	if providerID != "" {
-		workload, _, err = r.CoxClient.GetWorkload(providerID)
+		workload, _, err = machineScope.CoxClient.GetWorkload(providerID)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -252,7 +251,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			data.Deployments = append(data.Deployments, d)
 		}
 
-		resp, errResp, err := r.CoxClient.CreateWorkload(data)
+		resp, errResp, err := machineScope.CoxClient.CreateWorkload(data)
 
 		if err != nil {
 			jsn, _ := json.Marshal(errResp)
@@ -269,7 +268,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		workloadID = workload.Data.ID
 	}
 
-	instances, _, err := r.CoxClient.GetInstances(workloadID)
+	instances, _, err := machineScope.CoxClient.GetInstances(workloadID)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -303,7 +302,7 @@ func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 	logger.Info("Deleting machine")
 	// check if workload exists
 	providerID := machineScope.GetInstanceID()
-	wl, resp, err := r.CoxClient.GetWorkload(providerID)
+	wl, resp, err := machineScope.CoxClient.GetWorkload(providerID)
 	if err != nil {
 		if resp.StatusCode == 404 {
 			logger.Info("unable to find CoxMachine", "errors", resp.Errors)
@@ -314,7 +313,7 @@ func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 
 	if wl != nil {
 		if providerID != "" {
-			_, _, err := r.CoxClient.DeleteWorkload(providerID)
+			_, _, err := machineScope.CoxClient.DeleteWorkload(providerID)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to delete the machine: %v", err)
 			}

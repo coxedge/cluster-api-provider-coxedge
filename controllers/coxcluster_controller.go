@@ -51,8 +51,7 @@ const (
 // CoxClusterReconciler reconciles a CoxCluster object
 type CoxClusterReconciler struct {
 	client.Client
-	Scheme    *runtime.Scheme
-	CoxClient *coxedge.Client
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
@@ -125,7 +124,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 	// Just a check that Cox Edge is accessible. No need for further
 	// infrastructure setup beyond this.
-	workloads, _, err := r.CoxClient.GetWorkloads()
+	workloads, _, err := clusterScope.CoxClient.GetWorkloads()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -138,7 +137,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 			continue
 		}
 
-		instances, _, err := r.CoxClient.GetInstances(workload.ID)
+		instances, _, err := clusterScope.CoxClient.GetInstances(workload.ID)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -153,7 +152,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	}
 
 	// Ensure that the loadBalancer is created
-	lbClient := coxedge.NewLoadBalancerHelper(r.CoxClient)
+	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	loadBalancerSpec := coxedge.LoadBalancerSpec{
 		Name:     genClusterLoadBalancerName(clusterScope.Name()),
 		Port:     fmt.Sprintf("%d", defaultKubeApiserverPort),
@@ -205,7 +204,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 func (r *CoxClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
 	loadBalancerName := genClusterLoadBalancerName(clusterScope.Name())
-	lbClient := coxedge.NewLoadBalancerHelper(r.CoxClient)
+	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	err := lbClient.DeleteLoadBalancer(ctx, loadBalancerName)
 	if err != nil {
 		return ctrl.Result{}, err

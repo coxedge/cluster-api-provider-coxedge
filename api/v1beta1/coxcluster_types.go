@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -36,8 +37,9 @@ type CoxClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of CoxCluster. Edit coxcluster_types.go to remove/update
-	Foo                  string                     `json:"foo,omitempty"`
-	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
+	Foo                  string                       `json:"foo,omitempty"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint   `json:"controlPlaneEndpoint"`
+	Credentials          *corev1.LocalObjectReference `json:"credentials"`
 }
 
 // CoxClusterStatus defines the observed state of CoxCluster

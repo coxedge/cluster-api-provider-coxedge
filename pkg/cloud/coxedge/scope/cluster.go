@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	coxv1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
+	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
 
 	"k8s.io/klog/v2/klogr"
 
@@ -37,6 +38,7 @@ type ClusterScopeParams struct {
 	Logger     logr.Logger
 	Cluster    *clusterv1beta1.Cluster
 	CoxCluster *coxv1.CoxCluster
+	CoxClient  *coxedge.Client
 }
 
 // NewClusterScope creates a new ClusterScope from the supplied parameters.
@@ -57,11 +59,22 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
+	creds, err := GetCredentials(params.Client, params.CoxCluster.Namespace, params.CoxCluster.Spec.Credentials.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	coxClient, err := coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxApiKey, nil)
+	if err != nil {
+		return nil, errors.Errorf("error while trying to create instance of coxedge client %s", err.Error())
+	}
+
 	return &ClusterScope{
 		Logger:      params.Logger,
 		client:      params.Client,
 		Cluster:     params.Cluster,
 		CoxCluster:  params.CoxCluster,
+		CoxClient:   coxClient,
 		patchHelper: helper,
 	}, nil
 }
@@ -74,6 +87,7 @@ type ClusterScope struct {
 
 	Cluster    *clusterv1beta1.Cluster
 	CoxCluster *coxv1.CoxCluster
+	CoxClient  *coxedge.Client
 }
 
 // Close closes the current scope persisting the cluster configuration and status.

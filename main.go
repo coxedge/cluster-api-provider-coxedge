@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -32,7 +33,6 @@ import (
 
 	coxv1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
 	"github.com/platform9/cluster-api-provider-cox/controllers"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
 
 	// +kubebuilder:scaffold:imports
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -83,43 +83,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	apiToken := os.Getenv("COX_API_KEY")
-	if apiToken == "" {
-		setupLog.Info("missing required env COX_API_KEY")
-		os.Exit(1)
-	}
-
-	coxService := os.Getenv("COX_SERVICE")
-	if coxService == "" {
-		setupLog.Info("missing required env COX_SERVICE")
-		os.Exit(1)
-	}
-
-	coxEnvironment := os.Getenv("COX_ENVIRONMENT")
-	if coxEnvironment == "" {
-		setupLog.Info("missing required env COX_ENVIRONMENT")
-		os.Exit(1)
-	}
-
-	coxClient, err := coxedge.NewClient(coxService, coxEnvironment, apiToken, nil)
-	if err != nil {
-		setupLog.Info("error while setting up cox client", err)
-		os.Exit(1)
-	}
-
 	if err = (&controllers.CoxClusterReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		CoxClient: coxClient,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoxCluster")
 		os.Exit(1)
 	}
 
 	if err = (&controllers.CoxMachineReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		CoxClient: coxClient,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoxMachine")
 		os.Exit(1)

@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 
 	coxv1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
+	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -71,11 +72,23 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
+
+	creds, err := GetCredentials(params.Client, params.CoxMachine.Namespace, params.CoxMachine.Spec.Credentials.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	coxClient, err := coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxApiKey, nil)
+	if err != nil {
+		return nil, errors.Errorf("error while trying to create instance of coxedge client %s", err.Error())
+	}
+
 	return &MachineScope{
 		client:      params.Client,
 		Cluster:     params.Cluster,
 		Machine:     params.Machine,
 		CoxMachine:  params.CoxMachine,
+		CoxClient:   coxClient,
 		Logger:      params.Logger,
 		patchHelper: helper,
 	}, nil
@@ -91,6 +104,7 @@ type MachineScope struct {
 	Machine *clusterv1beta1.Machine
 	// CoxCluster *coxv1.CoxCluster
 	CoxMachine *coxv1.CoxMachine
+	CoxClient  *coxedge.Client
 }
 
 // Close the MachineScope by updating the machine spec, machine status.

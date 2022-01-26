@@ -14,4 +14,8 @@ const (
 	PopLasVegas   = "LAS"
 
 	PortProtocolTCP = "TCP"
+
+	CoxApiKey      = "cox_api_key"
+	CoxEnvironment = "cox_environment"
+	CoxService     = "cox_service"
 )
