@@ -15,14 +15,14 @@ Ensure that the Cox provider has the required credentials, create a ConfigMap wi
 Create a file named `coxedge-config.yaml
 ```yaml
 apiVersion: v1
-kind: ConfigMap
+kind: Secret
 metadata:
   name: coxedge
   namespace: capc-system
-data:
-  coxapikey: <COX_API_KEY>
-  coxservice: <COX_SERVICE>
-  coxenvironment: <COX_ENVIRONMENT>
+stringData:
+  COX_API_KEY: <COX_API_KEY>
+  COX_SERVICE: <COX_SERVICE>
+  COX_ENVIRONMENT: <COX_ENVIRONMENT>
 ```
 
 Apply the config:

@@ -43,24 +43,39 @@ manifests: generate controller-gen ## Generate WebhookConfiguration, ClusterRole
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-fmt: ## Run go fmt against code.
-	go fmt ./...
+.PHONY: verify
+verify: ## Run all static analysis checks.
+	# Check if codebase is formatted.
+	@bash -c "[ -z \"$$(gofmt -l . | grep -v '^vendor')\" ] && echo 'OK' || (echo 'ERROR: files are not formatted:' && gofmt -l . | grep -v '^vendor' && echo -e \"\nRun 'make format' or manually fix the formatting issues.\n\" && false)"
 
-vet: ## Run go vet against code.
-	go vet ./...
+	# Run static checks on codebase.
+	go vet .
+
+.PHONY: format
+format: ## Run all formatters.
+	# Format the Go codebase.
+	gofmt -w -s .
+
+	# Format the go.mod file.
+	go mod tidy
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: generate manifests fmt vet ## Run tests.
+test: generate manifests verify ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
+.PHONY: clean
+clean: docker-clean ## Clean up build-generated artifacts.
+	rm -rf bin/
+	rm -rf build/
+
 ##@ Build
 
-build: generate fmt vet ## Build manager binary.
+build: generate verify ## Build manager binary.
 	go build -o bin/manager main.go
 
-run: manifests generate fmt vet ## Run a controller from your host.
+run: manifests generate ## Run a controller from your host.
 	go run ./main.go
 
 docker-build:  ## Build docker image with the manager.
@@ -68,6 +83,10 @@ docker-build:  ## Build docker image with the manager.
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
+
+.PHONY: docker-clean
+docker-clean:
+	docker rmi ${IMG} || true
 
 ##@ Deployment
 
@@ -85,6 +104,11 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
+.PHONY: manifest-build
+manifest-build: kustomize
+	mkdir -p build
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default > $(MANIFEST_BUILD_PATH)
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.

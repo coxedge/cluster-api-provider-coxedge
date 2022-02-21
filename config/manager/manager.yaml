@@ -30,19 +30,19 @@ spec:
         env:
         - name: COX_API_KEY
           valueFrom:
-            configMapKeyRef:
+            secretKeyRef:
               name: coxedge
-              key: coxapikey
+              key: COX_API_KEY
         - name: COX_SERVICE
           valueFrom:
-            configMapKeyRef:
+            secretKeyRef:
               name: coxedge
-              key: coxservice
+              key: COX_SERVICE
         - name: COX_ENVIRONMENT
           valueFrom:
-            configMapKeyRef:
+            secretKeyRef:
               name: coxedge
-              key: coxenvironment
+              key: COX_ENVIRONMENT
         - name: COXEDGE_DEBUG
           value: "true"
         args:
