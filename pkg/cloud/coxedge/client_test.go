@@ -10,9 +10,14 @@ import (
 var (
 	wlID string
 	c    *Client
+	skip bool
 )
 
 func init() {
+	if len(os.Getenv("COX_SKIP_TESTS")) > 0 {
+		skip = true
+	}
+
 	c, _ = NewClient(os.Getenv("COXEDGE_SERVICE"), os.Getenv("COXEDGE_ENVIRONMENT"), os.Getenv("COXEDGE_TOKEN"), nil)
 }
 
@@ -28,6 +33,9 @@ func RandStringRunes(n int) string {
 }
 
 func TestCreateWorkload(t *testing.T) {
+	if skip {
+		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
+	}
 	workload := &CreateWorkloadRequest{
 		Name:                        "test-capi-cox-" + RandStringRunes(4),
 		Type:                        "VM",
@@ -77,6 +85,9 @@ func TestCreateWorkload(t *testing.T) {
 }
 
 func TestGetWorkloads(t *testing.T) {
+	if skip {
+		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
+	}
 	_, resp, err := c.GetWorkloads()
 
 	if err != nil {
@@ -88,6 +99,9 @@ func TestGetWorkloads(t *testing.T) {
 }
 
 func TestGetWorkload(t *testing.T) {
+	if skip {
+		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
+	}
 	wl, resp, err := c.GetWorkload(wlID)
 
 	if err != nil {
@@ -104,6 +118,9 @@ func TestGetWorkload(t *testing.T) {
 }
 
 func TestGetInstances(t *testing.T) {
+	if skip {
+		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
+	}
 	_, resp, err := c.GetInstances(wlID)
 
 	if err != nil {
@@ -115,6 +132,9 @@ func TestGetInstances(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
+	if skip {
+		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
+	}
 	wl, _, _ := c.GetWorkload(wlID)
 
 	if wl == nil {
@@ -130,6 +150,9 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDeleteWorkload(t *testing.T) {
+	if skip {
+		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
+	}
 	tt, r, err := c.DeleteWorkload(wlID)
 	t.Log(tt)
 	t.Log(r)
