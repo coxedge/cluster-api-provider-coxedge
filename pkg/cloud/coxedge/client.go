@@ -50,7 +50,7 @@ func NewClient(service, environment, apiKey string, httpClient *http.Client) (*C
 
 	client.service = service
 	client.environment = environment
-	client.debug = os.Getenv("COXEDGE_DEBUG") != ""
+	client.debug = os.Getenv("COX_DEBUG") != ""
 
 	return client, nil
 }

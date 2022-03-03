@@ -47,7 +47,8 @@ import (
 // CoxMachineReconciler reconciles a CoxMachine object
 type CoxMachineReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme             *runtime.Scheme
+	DefaultCredentials *scope.Credentials
 }
 
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
@@ -93,12 +94,23 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Info("Machine is missing cluster label or cluster does not exist")
 		return ctrl.Result{}, nil
 	}
+	coxCluster := &coxv1.CoxCluster{}
+	coxClusterName := client.ObjectKey{
+		Namespace: coxMachine.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	if err := r.Client.Get(ctx, coxClusterName, coxCluster); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
-		Client:     r.Client,
-		Logger:     logger,
-		Cluster:    cluster,
-		CoxMachine: coxMachine,
-		Machine:    machine,
+		Client:             r.Client,
+		Logger:             logger,
+		Cluster:            cluster,
+		CoxMachine:         coxMachine,
+		CoxCluster:         coxCluster,
+		Machine:            machine,
+		DefaultCredentials: r.DefaultCredentials,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Errorf("failed to create scope: %+v", err)
@@ -114,17 +126,6 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Handle deleted machines
 	if !coxMachine.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, machineScope, logger)
-	}
-
-	coxCluster := &coxv1.CoxCluster{}
-	coxClusterNamespacedName := client.ObjectKey{
-		Namespace: coxMachine.Namespace,
-		Name:      cluster.Spec.InfrastructureRef.Name,
-	}
-
-	if err := r.Get(ctx, coxClusterNamespacedName, coxCluster); err != nil {
-		logger.Info("CoxCluster is not available yet")
-		return ctrl.Result{}, nil
 	}
 
 	return r.reconcile(ctx, machineScope, logger)

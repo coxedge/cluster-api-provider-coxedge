@@ -2,6 +2,7 @@ package scope
 
 import (
 	"context"
+	"os"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -11,6 +12,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const (
+	EnvCoxAPIKey      = "COX_API_KEY"
+	EnvCoxService     = "COX_SERVICE"
+	EnvCoxEnvironment = "COX_ENVIRONMENT"
+)
+
 type Credentials struct {
 	CoxApiKey      string
 	CoxEnvironment string
@@ -18,8 +25,7 @@ type Credentials struct {
 }
 
 func GetCredentials(client client.Client, namespace string, name string) (*Credentials, error) {
-	var tokenSecret *corev1.Secret
-
+	tokenSecret := &corev1.Secret{}
 	coxSecretName := types.NamespacedName{Namespace: namespace, Name: name}
 	if err := client.Get(context.Background(), coxSecretName, tokenSecret); err != nil {
 		return nil, errors.Errorf("error getting referenced token secret/%s: %s", coxSecretName, err)
@@ -43,5 +49,29 @@ func GetCredentials(client client.Client, namespace string, name string) (*Crede
 	return &Credentials{
 		CoxApiKey:      string(coxApiKey),
 		CoxEnvironment: string(coxEnvironment),
-		CoxService:     string(coxService)}, nil
+		CoxService:     string(coxService),
+	}, nil
+}
+
+func ParseFromEnv() (*Credentials, error) {
+	coxApiKey, keyExists := os.LookupEnv(EnvCoxAPIKey)
+	if !keyExists {
+		return nil, errors.Errorf("key '%s' does not exist in env", EnvCoxAPIKey)
+	}
+
+	coxEnvironment, keyExists := os.LookupEnv(EnvCoxEnvironment)
+	if !keyExists {
+		return nil, errors.Errorf("key '%s' does not exist in env", EnvCoxEnvironment)
+	}
+
+	coxService, keyExists := os.LookupEnv(EnvCoxService)
+	if !keyExists {
+		return nil, errors.Errorf("key '%s' does not exist in env", EnvCoxService)
+	}
+
+	return &Credentials{
+		CoxApiKey:      coxApiKey,
+		CoxEnvironment: coxEnvironment,
+		CoxService:     coxService,
+	}, nil
 }

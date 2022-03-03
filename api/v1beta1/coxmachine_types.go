@@ -70,8 +70,6 @@ type CoxMachineSpec struct {
 	Commands []string `json:"commands,omitempty"`
 	// User data compatible with cloud-init
 	UserData string `json:"userData,omitempty"`
-
-	Credentials *corev1.LocalObjectReference `json:"credentials"`
 }
 
 // Deployment defines instance specifications

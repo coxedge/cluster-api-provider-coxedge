@@ -20,6 +20,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -48,7 +49,7 @@ func init() {
 	utilruntime.Must(coxv1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -70,6 +71,11 @@ func main() {
 
 	ctx := ctrl.SetupSignalHandler()
 
+	defaultCredentials, err := scope.ParseFromEnv()
+	if err != nil {
+		setupLog.Info("Could not parse default credentials from env", "err", err)
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -84,21 +90,23 @@ func main() {
 	}
 
 	if err = (&controllers.CoxClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		DefaultCredentials: defaultCredentials,
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoxCluster")
 		os.Exit(1)
 	}
 
 	if err = (&controllers.CoxMachineReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		DefaultCredentials: defaultCredentials,
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoxMachine")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
+	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

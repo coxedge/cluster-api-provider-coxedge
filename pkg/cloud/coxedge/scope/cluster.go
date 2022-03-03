@@ -21,7 +21,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-
 	coxv1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
 	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
 
@@ -34,11 +33,12 @@ import (
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
-	Client     client.Client
-	Logger     logr.Logger
-	Cluster    *clusterv1beta1.Cluster
-	CoxCluster *coxv1.CoxCluster
-	CoxClient  *coxedge.Client
+	Client             client.Client
+	Logger             logr.Logger
+	Cluster            *clusterv1beta1.Cluster
+	CoxCluster         *coxv1.CoxCluster
+	CoxClient          *coxedge.Client
+	DefaultCredentials *Credentials
 }
 
 // NewClusterScope creates a new ClusterScope from the supplied parameters.
@@ -59,9 +59,16 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
-	creds, err := GetCredentials(params.Client, params.CoxCluster.Namespace, params.CoxCluster.Spec.Credentials.Name)
-	if err != nil {
-		return nil, err
+	var creds *Credentials
+	if params.CoxCluster.Spec.Credentials != nil && len(params.CoxCluster.Spec.Credentials.Name) > 0 {
+		creds, err = GetCredentials(params.Client, params.CoxCluster.Namespace, params.CoxCluster.Spec.Credentials.Name)
+		if err != nil {
+			return nil, err
+		}
+	} else if params.DefaultCredentials != nil {
+		creds = params.DefaultCredentials
+	} else {
+		return nil, errors.New("no default or cluster-specific credentials provided")
 	}
 
 	coxClient, err := coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxApiKey, nil)

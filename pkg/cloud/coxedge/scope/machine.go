@@ -39,12 +39,13 @@ import (
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
-	Client  client.Client
-	Logger  logr.Logger
-	Cluster *clusterv1beta1.Cluster
-	Machine *clusterv1beta1.Machine
-	// CoxCluster *coxv1.CoxCluster
-	CoxMachine *coxv1.CoxMachine
+	Client             client.Client
+	Logger             logr.Logger
+	Cluster            *clusterv1beta1.Cluster
+	Machine            *clusterv1beta1.Machine
+	CoxCluster         *coxv1.CoxCluster
+	CoxMachine         *coxv1.CoxMachine
+	DefaultCredentials *Credentials
 }
 
 // NewMachineScope creates a new MachineScope from the supplied parameters.
@@ -57,9 +58,9 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if params.Cluster == nil {
 		return nil, errors.New("Cluster is required when creating a MachineScope")
 	}
-	// if params.CoxCluster == nil {
-	// 	return nil, errors.New("CoxCluster  is required when creating a MachineScope")
-	// }
+	if params.CoxCluster == nil {
+		return nil, errors.New("CoxCluster  is required when creating a MachineScope")
+	}
 	if params.CoxMachine == nil {
 		return nil, errors.New("CoxMachine is required when creating a MachineScope")
 	}
@@ -73,9 +74,16 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
-	creds, err := GetCredentials(params.Client, params.CoxMachine.Namespace, params.CoxMachine.Spec.Credentials.Name)
-	if err != nil {
-		return nil, err
+	var creds *Credentials
+	if params.CoxCluster.Spec.Credentials != nil && len(params.CoxCluster.Spec.Credentials.Name) > 0 {
+		creds, err = GetCredentials(params.Client, params.CoxCluster.Namespace, params.CoxCluster.Spec.Credentials.Name)
+		if err != nil {
+			return nil, err
+		}
+	} else if params.DefaultCredentials != nil {
+		creds = params.DefaultCredentials
+	} else {
+		return nil, errors.New("no default or cluster-specific credentials provided")
 	}
 
 	coxClient, err := coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxApiKey, nil)
@@ -88,6 +96,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		Cluster:     params.Cluster,
 		Machine:     params.Machine,
 		CoxMachine:  params.CoxMachine,
+		CoxCluster:  params.CoxCluster,
 		CoxClient:   coxClient,
 		Logger:      params.Logger,
 		patchHelper: helper,
@@ -100,9 +109,9 @@ type MachineScope struct {
 	client      client.Client
 	patchHelper *patch.Helper
 
-	Cluster *clusterv1beta1.Cluster
-	Machine *clusterv1beta1.Machine
-	// CoxCluster *coxv1.CoxCluster
+	Cluster    *clusterv1beta1.Cluster
+	Machine    *clusterv1beta1.Machine
+	CoxCluster *coxv1.CoxCluster
 	CoxMachine *coxv1.CoxMachine
 	CoxClient  *coxedge.Client
 }

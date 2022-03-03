@@ -2,6 +2,7 @@ package coxedge
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -83,7 +84,10 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 		},
 		Specs: SpecSP1,
 	})
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to create loadBalancer: %w", err)
+	}
+	return nil
 }
 
 func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *LoadBalancerSpec) error {
@@ -116,7 +120,7 @@ func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *Lo
 
 	_, _, err = l.Client.UpdateWorkload(workload.ID, *workload)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update loadBalancer: %w", err)
 	}
 	return nil
 }

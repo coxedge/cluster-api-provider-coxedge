@@ -36,10 +36,10 @@ type CoxClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of CoxCluster. Edit coxcluster_types.go to remove/update
-	Foo                  string                       `json:"foo,omitempty"`
-	ControlPlaneEndpoint clusterv1beta1.APIEndpoint   `json:"controlPlaneEndpoint"`
-	Credentials          *corev1.LocalObjectReference `json:"credentials"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// +optional
+	Credentials *corev1.LocalObjectReference `json:"credentials,omitempty"`
 }
 
 // CoxClusterStatus defines the observed state of CoxCluster

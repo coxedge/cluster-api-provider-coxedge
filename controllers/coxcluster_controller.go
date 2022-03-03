@@ -51,7 +51,8 @@ const (
 // CoxClusterReconciler reconciles a CoxCluster object
 type CoxClusterReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	DefaultCredentials *scope.Credentials
+	Scheme             *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
@@ -95,10 +96,11 @@ func (r *CoxClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Create the cluster scope
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-		Logger:     log,
-		Client:     r.Client,
-		Cluster:    cluster,
-		CoxCluster: &coxCluster,
+		Logger:             log,
+		Client:             r.Client,
+		Cluster:            cluster,
+		CoxCluster:         &coxCluster,
+		DefaultCredentials: r.DefaultCredentials,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Errorf("failed to create scope: %+v", err)
@@ -164,13 +166,21 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 			return ctrl.Result{}, err
 		}
 		err = lbClient.CreateLoadBalancer(ctx, &loadBalancerSpec)
-	} else if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
-
-		existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
-		err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
-	}
-	if err != nil {
-		return ctrl.Result{}, err
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
+	} else {
+		// The name can be normalized to
+		loadBalancerSpec.Name = existingLoadBalancer.Spec.Name
+		if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
+			existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
+			err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			log.Info("Updated LoadBalancer deployment", "old", existingLoadBalancer.Spec, "new", loadBalancerSpec)
+		}
 	}
 
 	if existingLoadBalancer != nil && len(existingLoadBalancer.Status.PublicIP) == 0 {
@@ -193,6 +203,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 	// Hack: requeue as long as the load balancer does not yet have an appropriate backend.
 	if apiserverAddresses[0] == defaultBackend {
+		log.Info("LoadBalancer does not yet have a valid apiserver to use as backend.")
 		return ctrl.Result{
 			RequeueAfter: 10 * time.Second,
 		}, nil
