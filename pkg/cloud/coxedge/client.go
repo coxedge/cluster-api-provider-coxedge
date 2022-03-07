@@ -124,10 +124,9 @@ func (c *Client) WaitForWorkload(taskID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	switch t.Data.Status {
 	case "SUCCESS":
-		return t.Data.Result.WorkloadID, nil
+		return t.Data.Result.ID, nil
 	case "FAILURE":
 		return "", fmt.Errorf("provisioning of workload failed")
 	default:
