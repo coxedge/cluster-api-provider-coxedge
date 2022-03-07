@@ -79,7 +79,7 @@ run: manifests generate ## Run a controller from your host.
 	go run ./main.go
 
 docker-build:  ## Build docker image with the manager.
-	docker build -t ${IMG} .
+	DOCKER_BUILDKIT=1 docker build -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
