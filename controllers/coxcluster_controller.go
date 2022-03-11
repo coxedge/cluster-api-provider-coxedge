@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util"
@@ -124,28 +124,28 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	coxCluster := clusterScope.CoxCluster
 	controllerutil.AddFinalizer(coxCluster, coxv1.ClusterFinalizer)
 
-	// Just a check that Cox Edge is accessible. No need for further
-	// infrastructure setup beyond this.
-	workloads, _, err := clusterScope.CoxClient.GetWorkloads()
+	// Hacky way to retrieve the control plane endpoints from the machines
+	var apiserverAddresses []string
+	coxMachines := &coxv1.CoxMachineList{}
+	err := r.Client.List(ctx, coxMachines)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	// Hacky way to retrieve the control plane endpoints from workloads
-	// warning: this might not be updated when the CoxMachine gets created.
-	var apiserverAddresses []string
-	for _, workload := range workloads.Data {
-		if !strings.HasPrefix(workload.Name, clusterScope.Name()+"-contr") {
+	for _, coxMachine := range coxMachines.Items {
+		if coxMachine.Labels[clusterv1.ClusterLabelName] != clusterScope.Name() {
 			continue
 		}
 
-		instances, _, err := clusterScope.CoxClient.GetInstances(workload.ID)
-		if err != nil {
-			return ctrl.Result{}, err
+		if _, ok := coxMachine.Labels[clusterv1.MachineControlPlaneLabelName]; !ok {
+			continue
 		}
 
-		for _, instance := range instances.Data {
-			apiserverAddresses = append(apiserverAddresses, fmt.Sprintf("%s:%d", instance.PublicIPAddress, defaultKubeApiserverPort))
+		for _, addr := range coxMachine.Status.Addresses {
+			if addr.Type != corev1.NodeExternalIP {
+				continue
+			}
+			apiserverAddresses = append(apiserverAddresses, fmt.Sprintf("%s:%d", addr.Address, defaultKubeApiserverPort))
+			break
 		}
 	}
 	if len(apiserverAddresses) == 0 {
@@ -170,6 +170,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 			return ctrl.Result{}, err
 		}
 		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
+		return ctrl.Result{Requeue: true}, nil
 	} else {
 		// The name can be normalized to
 		loadBalancerSpec.Name = existingLoadBalancer.Spec.Name
@@ -190,6 +191,14 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}, nil
 	}
 
+	// Hack: requeue as long as the load balancer does not yet have an appropriate backend.
+	if apiserverAddresses[0] == defaultBackend {
+		log.Info("LoadBalancer does not yet have a valid apiserver to use as backend.")
+		return ctrl.Result{
+			RequeueAfter: 10 * time.Second,
+		}, nil
+	}
+
 	// Set the controlPlaneRef
 	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port)
 	if err != nil {
@@ -200,14 +209,6 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		Port: int32(port),
 	}
 	clusterScope.CoxCluster.Status.Ready = true
-
-	// Hack: requeue as long as the load balancer does not yet have an appropriate backend.
-	if apiserverAddresses[0] == defaultBackend {
-		log.Info("LoadBalancer does not yet have a valid apiserver to use as backend.")
-		return ctrl.Result{
-			RequeueAfter: 10 * time.Second,
-		}, nil
-	}
 
 	log.Info("Cluster reconciled.")
 	return ctrl.Result{}, nil
