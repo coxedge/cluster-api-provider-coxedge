@@ -43,8 +43,6 @@ spec:
             secretKeyRef:
               name: coxedge
               key: COX_ENVIRONMENT
-        - name: COXEDGE_DEBUG
-          value: "true"
         args:
         - --leader-elect
         image: controller

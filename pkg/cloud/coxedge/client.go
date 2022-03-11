@@ -7,12 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
-	"moul.io/http2curl"
 )
 
 const (
@@ -27,7 +25,6 @@ type Client struct {
 	client      *http.Client
 	apiKey      string
 	baseUrl     *url.URL
-	debug       bool
 	service     string
 	environment string
 }
@@ -50,7 +47,6 @@ func NewClient(service, environment, apiKey string, httpClient *http.Client) (*C
 
 	client.service = service
 	client.environment = environment
-	client.debug = os.Getenv("COX_DEBUG") != ""
 
 	return client, nil
 }
@@ -207,10 +203,7 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 }
 
 func (c *Client) Do(req *http.Request, v interface{}) (*ErrorResponse, error) {
-	if c.debug {
-		command, _ := http2curl.GetCurlCommand(req)
-		fmt.Println(command)
-	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
