@@ -131,3 +131,28 @@ GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
+
+##@ Kind commands
+
+KIND_CLUSTER_NAME=kind
+KIND_IMG=cluster-api-cox-controller:kind
+KIND_CONTROLLER_NAMESPACE=capc-system
+KIND_KUBECONFIG_PATH=build/kind-$(KIND_CLUSTER_NAME).kubeconfig
+
+.PHONY: kind-kubeconfig
+kind-kubeconfig:
+	mkdir -p build
+	kind get kubeconfig --name $(KIND_CLUSTER_NAME) > $(KIND_KUBECONFIG_PATH)
+
+.PHONY: kind-deploy
+kind-deploy: docker-build kind-kubeconfig ## Build and deploy an image into a local KinD cluster
+	# Verify that the "kind" cluster exists
+	kind get clusters | grep -q $(KIND_CLUSTER_NAME)
+	# Rename the image to avoid conflicts
+	docker tag $(IMG) $(KIND_IMG)
+	# Alternative 'kind load', because it is broken for Apple M1 in some cases.
+	docker save $(KIND_IMG) | docker exec --privileged -i $(KIND_CLUSTER_NAME)-control-plane ctr --namespace=k8s.io images import --all-platforms -
+	# Update the deployment
+	$(MAKE) deploy KUBECONFIG=$(KIND_KUBECONFIG_PATH) IMG=$(KIND_IMG)
+	# Recreate the pods to ensure that the newer image is used
+	kubectl --kubeconfig=$(KIND_KUBECONFIG_PATH) -n $(KIND_CONTROLLER_NAMESPACE) delete pod --all || true
