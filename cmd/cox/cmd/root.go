@@ -72,5 +72,5 @@ func createClientFromEnv() (*coxedge.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxApiKey, http.DefaultClient)
+	return coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxAPIKey, http.DefaultClient)
 }

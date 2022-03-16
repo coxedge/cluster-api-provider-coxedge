@@ -67,7 +67,6 @@ type CoxMachineReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-
 	logger := ctrl.LoggerFrom(ctx)
 
 	coxMachine := &coxv1.CoxMachine{}
@@ -256,18 +255,17 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 
 		if err != nil {
 			jsn, _ := json.Marshal(errResp)
-			return ctrl.Result{}, fmt.Errorf("error occured while creating workload: %v - response: %v", err, string(jsn))
+			return ctrl.Result{}, fmt.Errorf("error occurred while creating workload: %v - response: %v", err, string(jsn))
 		}
 
 		// Since the workload has just been created we have to requeue and poll for provisioning status with task ID
-		machineScope.CoxMachine.Status.TaskID = resp.TaskId
+		machineScope.CoxMachine.Status.TaskID = resp.TaskID
 
 		return ctrl.Result{
 			RequeueAfter: 1 * time.Minute,
 		}, nil
-	} else {
-		workloadID = workload.Data.ID
 	}
+	workloadID = workload.Data.ID
 
 	instances, _, err := machineScope.CoxClient.GetInstances(workloadID)
 	if err != nil {

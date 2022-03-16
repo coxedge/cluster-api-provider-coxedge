@@ -76,7 +76,7 @@ func TestCreateWorkload(t *testing.T) {
 		t.Fail()
 		return
 	}
-	wlID, err = c.WaitForWorkload(pr.TaskId)
+	wlID, err = c.WaitForWorkload(pr.TaskID)
 	if err != nil {
 		t.Log(err)
 		t.Fail()
@@ -114,7 +114,6 @@ func TestGetWorkload(t *testing.T) {
 	if wl.Data.ID != wlID {
 		t.Logf("fetched data is not equal to sought data wanted: %s, received: %s ", wlID, wl.Data.ID)
 	}
-
 }
 
 func TestGetInstances(t *testing.T) {

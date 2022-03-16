@@ -19,7 +19,7 @@ const (
 )
 
 type Credentials struct {
-	CoxApiKey      string
+	CoxAPIKey      string
 	CoxEnvironment string
 	CoxService     string
 }
@@ -31,9 +31,9 @@ func GetCredentials(client client.Client, namespace string, name string) (*Crede
 		return nil, errors.Errorf("error getting referenced token secret/%s: %s", coxSecretName, err)
 	}
 
-	coxApiKey, keyExists := tokenSecret.Data[coxedge.CoxApiKey]
+	CoxAPIKey, keyExists := tokenSecret.Data[coxedge.CoxAPIKey]
 	if !keyExists {
-		return nil, errors.Errorf("error key %s does not exist in secret/%s", coxedge.CoxApiKey, coxSecretName)
+		return nil, errors.Errorf("error key %s does not exist in secret/%s", coxedge.CoxAPIKey, coxSecretName)
 	}
 
 	coxEnvironment, keyExists := tokenSecret.Data[coxedge.CoxEnvironment]
@@ -47,14 +47,14 @@ func GetCredentials(client client.Client, namespace string, name string) (*Crede
 	}
 
 	return &Credentials{
-		CoxApiKey:      string(coxApiKey),
+		CoxAPIKey:      string(CoxAPIKey),
 		CoxEnvironment: string(coxEnvironment),
 		CoxService:     string(coxService),
 	}, nil
 }
 
 func ParseFromEnv() (*Credentials, error) {
-	coxApiKey, keyExists := os.LookupEnv(EnvCoxAPIKey)
+	CoxAPIKey, keyExists := os.LookupEnv(EnvCoxAPIKey)
 	if !keyExists {
 		return nil, errors.Errorf("key '%s' does not exist in env", EnvCoxAPIKey)
 	}
@@ -70,7 +70,7 @@ func ParseFromEnv() (*Credentials, error) {
 	}
 
 	return &Credentials{
-		CoxApiKey:      coxApiKey,
+		CoxAPIKey:      CoxAPIKey,
 		CoxEnvironment: coxEnvironment,
 		CoxService:     coxService,
 	}, nil

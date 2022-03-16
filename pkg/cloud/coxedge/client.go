@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	baseUrl = "https://portal.coxedge.com/api/v1/"
+	baseURL = "https://portal.coxedge.com/api/v1/"
 )
 
 var (
@@ -24,24 +24,23 @@ var (
 type Client struct {
 	client      *http.Client
 	apiKey      string
-	baseUrl     *url.URL
+	baseURL     *url.URL
 	service     string
 	environment string
 }
 
 func NewClient(service, environment, apiKey string, httpClient *http.Client) (*Client, error) {
-
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 
-	url, err := url.Parse(baseUrl)
+	url, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
 	client := &Client{
 		apiKey:  apiKey,
-		baseUrl: url,
+		baseURL: url,
 		client:  httpClient,
 	}
 
@@ -182,7 +181,7 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 		return nil, err
 	}
 
-	u := c.baseUrl.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 	var req *http.Request
 	if body != nil {
 		bodyBytes, _ := json.Marshal(body)
@@ -190,7 +189,6 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 		req.Header.Set("Content-Type", "application/json")
 	} else {
 		req, _ = http.NewRequest(method, u.String(), nil)
-
 	}
 	if err != nil {
 		return nil, err
@@ -203,7 +201,6 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 }
 
 func (c *Client) Do(req *http.Request, v interface{}) (*ErrorResponse, error) {
-
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -315,7 +312,7 @@ type CreateWorkloadRequest struct {
 }
 
 type POSTResponse struct {
-	TaskId     string `json:"taskId,omitempty"`
+	TaskID     string `json:"TaskID,omitempty"`
 	TaskStatus string `json:"taskStatus,omitempty"`
 }
 

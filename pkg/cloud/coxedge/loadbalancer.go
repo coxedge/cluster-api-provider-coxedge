@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -93,7 +94,9 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *LoadBalancerSpec) error {
 	workload, err := l.Client.GetWorkloadByName(payload.Name)
 	if err != nil {
-		// TODO do return error if the error is not NotFound
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
 		return nil
 	}
 
@@ -128,7 +131,9 @@ func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *Lo
 func (l *LoadBalancerHelper) DeleteLoadBalancer(ctx context.Context, name string) error {
 	workload, err := l.Client.GetWorkloadByName(name)
 	if err != nil {
-		// TODO do return error if the error is not NotFound
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
 		return nil
 	}
 

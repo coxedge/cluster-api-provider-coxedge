@@ -171,17 +171,16 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}
 		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
 		return ctrl.Result{Requeue: true}, nil
-	} else {
-		// The name can be normalized to
-		loadBalancerSpec.Name = existingLoadBalancer.Spec.Name
-		if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
-			existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
-			err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			log.Info("Updated LoadBalancer deployment", "old", existingLoadBalancer.Spec, "new", loadBalancerSpec)
+	}
+	// The name can be normalized to
+	loadBalancerSpec.Name = existingLoadBalancer.Spec.Name
+	if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
+		existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
+		err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
+		log.Info("Updated LoadBalancer deployment", "old", existingLoadBalancer.Spec, "new", loadBalancerSpec)
 	}
 
 	if existingLoadBalancer != nil && len(existingLoadBalancer.Status.PublicIP) == 0 {

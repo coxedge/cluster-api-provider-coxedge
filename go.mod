@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/erwinvaneyk/cobras v0.0.0-20200914200705-1d2dfabe2493
 	github.com/go-logr/logr v0.4.0
+	github.com/googleapis/gax-go/v2 v2.1.0
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
