@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: 1.18
 
       - name: test CAPI provider
         run: COXEDGE_TOKEN=${{ secrets.COXEDGE_TOKEN }} COXEDGE_ENVIRONMENT=${{ secrets.COXEDGE_ENVIRONMENT }} COXEDGE_SERVICE=${{ secrets.COXEDGE_SERVICE }}  make test

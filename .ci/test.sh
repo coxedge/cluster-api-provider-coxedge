@@ -3,7 +3,7 @@
 # test.sh - CI script for running all tests for the cluster-api-provider-cox.
 #
 # Parameters:
-# - GO_VERSION      Version of Go to use for testing. (default: 1.17.6)
+# - GO_VERSION      Version of Go to use for testing. (default: 1.18)
 #
 # Examples:
 # - `USE_SYSTEM_GO=1 ./test.sh`: To test the script locally without gimme
@@ -13,7 +13,7 @@ set -o errexit
 set -o pipefail
 
 project_root=$(realpath "$(dirname $0)/..")
-GO_VERSION=${GO_VERSION:-1.17.6}
+GO_VERSION=${GO_VERSION:-1.18}
 
 main() {
   # Move to the project directory

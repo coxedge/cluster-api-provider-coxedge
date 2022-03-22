@@ -26,7 +26,7 @@ project_root=$(realpath "$(dirname $0)/..")
 build_dir=${project_root}/build
 CONTAINER_TAG=${CONTAINER_TAG:-${build_dir}/container-tag}
 CONTAINER_FULL_TAG=${CONTAINER_FULL_TAG:-${build_dir}/container-full-tag}
-GO_VERSION=${GO_VERSION:-1.17.6}
+GO_VERSION=${GO_VERSION:-1.18}
 
 BUILD_NUMBER=${BUILD_NUMBER:-000}
 PF9_VERSION=${PF9_VERSION:-5.5.0}
