@@ -1,13 +1,19 @@
 
+# Using PWD is not guaranteed to be the directory of the Makefile. Use these instead:
+MAKE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+MAKE_DIR := $(shell dirname $(MAKE_PATH))
+
 # Image URL to use all building/pushing image targets
 IMG ?= cluster-api-cox-controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
-KUSTOMIZE_VERSION ?= v3.8.7
+KUSTOMIZE_VERSION ?= v4.5.2
 
-LOCALBIN ?= bin
+LOCALBIN ?= $(MAKE_DIR)/bin
+KUSTOMIZE = $(LOCALBIN)/kustomize
+CONTROLLER_GEN = $(LOCALBIN)/controller-gen
 
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -96,13 +102,13 @@ docker-clean:
 
 ##@ Deployment
 
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+install: manifests $(KUSTOMIZE)  ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
+uninstall: manifests $(KUSTOMIZE)  ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+deploy: manifests $(KUSTOMIZE)  ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 	git restore config/manager/kustomization.yaml || true # Clean up changes made by kustomize edit.
@@ -115,34 +121,24 @@ manifest-build: kustomize
 	mkdir -p build
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default > $(MANIFEST_BUILD_PATH)
+	
+.PHONY: tools
+tools: controller-gen kustomize
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
-
-KUSTOMIZE = $(shell pwd)/bin/kustomize
+controller-gen: $(LOCALBIN) ## Download controller-gen locally if necessary.
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
 
 $(LOCALBIN): ## Ensure that the directory exists
 	mkdir -p $(LOCALBIN)
 
+
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
+	rm -f $(KUSTOMIZE)
 	curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
+
 
 ##@ Kind commands
 
