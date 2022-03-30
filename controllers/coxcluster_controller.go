@@ -190,14 +190,6 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}, nil
 	}
 
-	// Hack: requeue as long as the load balancer does not yet have an appropriate backend.
-	if apiserverAddresses[0] == defaultBackend {
-		log.Info("LoadBalancer does not yet have a valid apiserver to use as backend.")
-		return ctrl.Result{
-			RequeueAfter: 10 * time.Second,
-		}, nil
-	}
-
 	// Set the controlPlaneRef
 	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port)
 	if err != nil {
@@ -208,6 +200,14 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		Port: int32(port),
 	}
 	clusterScope.CoxCluster.Status.Ready = true
+
+	// Hack: requeue as long as the load balancer does not yet have an appropriate backend.
+	if apiserverAddresses[0] == defaultBackend {
+		log.Info("LoadBalancer does not yet have a valid apiserver to use as backend.")
+		return ctrl.Result{
+			RequeueAfter: 10 * time.Second,
+		}, nil
+	}
 
 	log.Info("Cluster reconciled.")
 	return ctrl.Result{}, nil
