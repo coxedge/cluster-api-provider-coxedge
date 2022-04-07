@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/erwinvaneyk/cobras"
@@ -13,7 +14,7 @@ import (
 
 type WorkloadListOptions struct {
 	*WorkloadOptions
-	ShowWideInfo bool
+	OutputFormat string
 }
 
 func NewCmdWorkloadList(workloadOpts *WorkloadOptions) *cobra.Command {
@@ -27,7 +28,7 @@ func NewCmdWorkloadList(workloadOpts *WorkloadOptions) *cobra.Command {
 		Run:   cobras.Run(opts),
 	}
 
-	cmd.Flags().BoolVar(&opts.ShowWideInfo, "wide", opts.ShowWideInfo, "Show more details about the workload.")
+	cmd.Flags().StringVarP(&opts.OutputFormat, "output", "o", opts.OutputFormat, "Output format. options: wide,name")
 
 	return cmd
 }
@@ -53,18 +54,18 @@ func (o *WorkloadListOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-	if o.ShowWideInfo {
+	switch o.OutputFormat {
+	case "name":
+		for _, workload := range workloads.Data {
+			fmt.Println(workload.Name)
+		}
+	case "wide":
+		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "NAME", "TYPE", "STATUS", "ANYCAST IP", "PUBLIC IP"})
-	} else {
-		table.SetHeader([]string{"ID", "NAME", "TYPE", "STATUS", "ANYCAST IP"})
-	}
-	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	table.SetCenterSeparator("|")
-	table.SetAutoWrapText(false)
-
-	for _, workload := range workloads.Data {
-		if o.ShowWideInfo {
+		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+		table.SetCenterSeparator("|")
+		table.SetAutoWrapText(false)
+		for _, workload := range workloads.Data {
 			instances, _, err := client.GetInstances(workload.ID)
 			if err != nil {
 				return err
@@ -83,7 +84,15 @@ func (o *WorkloadListOptions) Run(ctx context.Context) error {
 				workload.AnycastIPAddress,
 				instance.PublicIPAddress,
 			})
-		} else {
+		}
+		table.Render()
+	default:
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetHeader([]string{"ID", "NAME", "TYPE", "STATUS", "ANYCAST IP"})
+		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+		table.SetCenterSeparator("|")
+		table.SetAutoWrapText(false)
+		for _, workload := range workloads.Data {
 			table.Append([]string{
 				workload.ID,
 				workload.Name,
@@ -92,8 +101,7 @@ func (o *WorkloadListOptions) Run(ctx context.Context) error {
 				workload.AnycastIPAddress,
 			})
 		}
+		table.Render()
 	}
-	table.Render()
-
 	return nil
 }
