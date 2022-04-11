@@ -73,6 +73,9 @@ main() {
   info "Build Docker image"
   make docker-build IMG="${IMAGE_REGISTRY_NAME_TAG}"
 
+  info "Verifying code generation"
+  make verify-generate
+
   info "Push Docker image"
   if [ -z "${DRY_RUN:-}" ] ; then
     make docker-push IMG="${IMAGE_REGISTRY_NAME_TAG}"

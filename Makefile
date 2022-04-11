@@ -71,6 +71,10 @@ format: ## Run all formatters.
 	# Format the go.mod file.
 	go mod tidy
 
+.PHONY: verify-generate
+verify-generate: ## Verify that all code generation is up to date
+	hack/verify-codegen.sh
+
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: generate manifests verify ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
