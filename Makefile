@@ -4,9 +4,14 @@ MAKE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MAKE_DIR := $(shell dirname $(MAKE_PATH))
 
 # Image URL to use all building/pushing image targets
-IMG ?= cluster-api-cox-controller:latest
+REGISTRY ?= docker.io/platform9
+IMAGE_NAME ?= cluster-api-provider-cox-controller
+IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
+
+# Allow overriding the imagePullPolicy
+PULL_POLICY ?= Always
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 KUSTOMIZE_VERSION ?= v4.5.2
@@ -79,7 +84,8 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: generate manifests verify ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
+	# Note: explicitly setting the GOARCH to fix the bugged setup-envtest.sh for Apple M1.
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; export GOARCH=amd64; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
 .PHONY: clean
 clean: docker-clean ## Clean up build-generated artifacts.
@@ -93,6 +99,8 @@ build: generate verify ## Build manager binary.
 
 run: manifests generate ## Run a controller from your host.
 	go run ./main.go
+
+##@ Docker
 
 docker-build:  ## Build docker image with the manager.
 	DOCKER_BUILDKIT=1 docker build -t ${IMG} .
@@ -123,7 +131,8 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 .PHONY: manifest-build
 manifest-build: kustomize
 	mkdir -p build
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	#cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG)
 	$(KUSTOMIZE) build config/default > $(MANIFEST_BUILD_PATH)
 	
 .PHONY: tools
@@ -143,6 +152,61 @@ $(KUSTOMIZE): $(LOCALBIN)
 	curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
 
+##@ Release commands
+
+RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
+RELEASE_DIR := build/releases
+
+$(RELEASE_DIR):
+	mkdir -p $(RELEASE_DIR)/
+
+.PHONY: release
+release: clean-release  ## Builds and push container images using the latest git tag for the commit.
+	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
+	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
+	git checkout "${RELEASE_TAG}"
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG):$(RELEASE_TAG)
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent
+	$(MAKE) release-manifests
+	#$(MAKE) release-templates
+
+.PHONY: release-manifests
+release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publish with a release
+	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG):$(RELEASE_TAG)
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent
+	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+
+.PHONY: release-manifests-clusterctl
+release-manifests-clusterctl: ## Create the releases directory to conform with clusterctl provider contract for a local provider
+	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
+	$(MAKE) release-manifests RELEASE_DIR=$(RELEASE_DIR)/infrastructure-cox/latest RELEASE_TAG=latest
+	$(MAKE) release-manifests RELEASE_DIR=$(RELEASE_DIR)/infrastructure-cox/$(RELEASE_TAG)
+
+.PHONY: release-templates
+release-templates: $(RELEASE_DIR)
+	cp templates/cluster-template* $(RELEASE_DIR)/
+
+.PHONY: release-staging
+release-staging: ## Builds and push container images to the staging registry.
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
+
+.PHONY: set-manifest-image
+set-manifest-image:
+	$(info Updating kustomize image patch file for default resource)
+	sed -i'' -e 's@image: .*@image: '"$(MANIFEST_IMG)"'@' ./config/default/manager_image_patch.yaml
+	rm -f ./config/default/manager_image_patch.yaml-e # Needed for MacOS sed
+
+.PHONY: set-manifest-pull-policy
+set-manifest-pull-policy:
+	$(info Updating kustomize pull policy file for default resource)
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/default/manager_pull_policy.yaml
+	rm -f ./config/default/manager_pull_policy.yaml-e # Needed for MacOS sed
+
+.PHONY: clean-release
+clean-release: ## Remove the release folder
+	rm -rf $(RELEASE_DIR)
 
 ##@ Kind commands
 

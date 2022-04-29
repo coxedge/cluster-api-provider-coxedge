@@ -4,7 +4,26 @@ Kubernetes-native declarative infrastructure for [Cox Edge](https://www.coxedge.
 
 ## Installation
 
-Before you can deploy the infrastructure controller, you’ll need to deploy Cluster API itself.
+Before you can deploy the infrastructure controller, you’ll need to configure 
+and deploy Cluster API itself.
+
+First, you will need to update your `clusterctl` config to be able to discover 
+the provider, which is located by default `~/.cluster-api/clusterctl.yaml`.
+
+```yaml
+providers:
+  # Add the cox infrastructure provider to the clusterctl config for discovery
+  - name: cox
+    type: InfrastructureProvider
+    url: https://github.com/platform9/cluster-api-provider-cox/releases/latest/
+  # or, use a local provider (replace the `/path/to` with the path to this repository).
+  - name: cox-local
+    type: InfrastructureProvider
+    url: /path/to/cluster-api-provider-cox/build/release/infrastructure-cox/latest/infrastructure-components.yaml
+```
+
+Then, deploy the core components of Cluster API. Clusterctl uses the kubeconfig
+present in `KUBECONFIG` unless configured otherwise. To deploy:
 
 ```shell
 clusterctl init
@@ -25,17 +44,12 @@ stringData:
   COX_ENVIRONMENT: <COX_ENVIRONMENT>
 ```
 
-Apply the config:
+Apply the config to the target cluster:
 ```shell
 kubectl apply -f ./coxedge-config.yaml
 ```
 
-To deploy from the latest build:
+To deploy the provider with clusterctl:
 ```shell
-# Build and push the controller image
-make docker-build docker-push IMG=$DOCKER_USER/cluster-api-provider-cox-controller:latest
-
-# Deploy the provider to your current cluster
-make deploy IMG=$DOCKER_USER/cluster-api-provider-cox-controller:latest
+clusterctl init --infrastructure cox
 ```
-
