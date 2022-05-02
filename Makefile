@@ -5,7 +5,7 @@ MAKE_DIR := $(shell dirname $(MAKE_PATH))
 
 # Image URL to use all building/pushing image targets
 REGISTRY ?= docker.io/platform9
-IMAGE_NAME ?= cluster-api-provider-cox-controller
+IMAGE_NAME ?= cluster-api-cox-controller
 IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
