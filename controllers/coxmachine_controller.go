@@ -99,7 +99,12 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 	if err := r.Client.Get(ctx, coxClusterName, coxCluster); err != nil {
-		return reconcile.Result{}, err
+		// Allow the cluster to be empty, because it is not needed in the deletion logic.
+		if apierrors.IsNotFound(err) {
+			logger.Info("CoxCluster not found.", "cluster", coxClusterName)
+		} else {
+			return reconcile.Result{}, err
+		}
 	}
 
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
@@ -133,6 +138,19 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Reconciling CoxMachine")
 	coxMachine := machineScope.CoxMachine
+
+	// Check if the cluster was found
+	if machineScope.Cluster == nil {
+		cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machineScope.Machine.ObjectMeta)
+		if err != nil {
+			logger.Info("Machine is missing cluster label or cluster does not exist")
+			return ctrl.Result{}, nil
+		}
+		return reconcile.Result{}, apierrors.NewNotFound(
+			coxv1.GroupVersion.WithResource("coxclusters").GroupResource(),
+			cluster.Spec.InfrastructureRef.Name,
+		)
+	}
 
 	// Add the finalizer to the CoxMachine if it does not exist yet.
 	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
