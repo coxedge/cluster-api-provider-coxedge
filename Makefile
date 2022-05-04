@@ -121,9 +121,9 @@ uninstall: manifests $(KUSTOMIZE)  ## Uninstall CRDs from the K8s cluster specif
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 deploy: manifests $(KUSTOMIZE)  ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
-	git restore config/manager/kustomization.yaml || true # Clean up changes made by kustomize edit.
+	git restore config/default/manager_image_patch.yaml || true # Clean up changes made by kustomize edit.
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
@@ -131,9 +131,9 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 .PHONY: manifest-build
 manifest-build: kustomize
 	mkdir -p build
-	#cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG)
 	$(KUSTOMIZE) build config/default > $(MANIFEST_BUILD_PATH)
+	git restore config/default/manager_image_patch.yaml || true # Clean up changes made by kustomize edit.
 	
 .PHONY: tools
 tools: controller-gen kustomize
