@@ -32,7 +32,7 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   credentials:
-    name: ${COXEDGE_CREDENTIALS}
+    name: "${COXEDGE_CREDENTIALS}" # If left empty, the root credentials will be used.
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: NodeletControlPlane
