@@ -50,7 +50,8 @@ spec:
             description: CoxClusterSpec defines the desired state of CoxCluster
             properties:
               controlPlaneEndpoint:
-                description: APIEndpoint represents a reachable Kubernetes API endpoint.
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
                 properties:
                   host:
                     description: The hostname on which the API server is serving.
@@ -72,8 +73,6 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-            required:
-            - controlPlaneEndpoint
             type: object
           status:
             description: CoxClusterStatus defines the observed state of CoxCluster

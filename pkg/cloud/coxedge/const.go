@@ -15,7 +15,7 @@ const (
 
 	PortProtocolTCP = "TCP"
 
-	CoxAPIKey      = "cox_api_key"
-	CoxEnvironment = "cox_environment"
-	CoxService     = "cox_service"
+	CoxAPIKey      = "COX_API_KEY"
+	CoxEnvironment = "COX_ENVIRONMENT"
+	CoxService     = "COX_SERVICE"
 )
