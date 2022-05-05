@@ -1,0 +1,135 @@
+# Parameters:
+# - CLUSTER_NAME
+# - SSH_KEY
+# - WORKER_MACHINE_COUNT
+# - COXEDGE_REGION (example: "LAS")
+# - POD_CIDR (example: "10.20.0.0/22")
+# - SERVICE_CIDR (example: "10.21.0.0/22")
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - ${POD_CIDR} # Configurable because there is no VPC in Cox Edge yet.
+    services:
+      cidrBlocks:
+        - ${SERVICE_CIDR} # Configurable because there is no VPC in Cox Edge yet.
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: NodeletControlPlane
+    name: ${CLUSTER_NAME}-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: CoxCluster
+    name: ${CLUSTER_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CoxCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  credentials:
+    name: ${COXEDGE_CREDENTIALS}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: NodeletControlPlane
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: CoxMachineTemplate
+      name: ${CLUSTER_NAME}-control-plane
+    nodeletConfigSpec: {}
+  replicas: 1
+  version: v1.21.3
+  cni:
+    calico:
+      natOutgoing: true
+      IPIPMode: "Always"
+  schedulable: true
+  apiserver:
+    privileged: true # Needed for calico
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CoxMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  template:
+    spec:
+      image: stackpath-edge/ubuntu-2004-focal:v202102241556
+      ports:
+        - protocol: TCP
+          publicPort: "22"
+        - protocol: TCP
+          publicPort: "6443"
+      sshAuthorizedKeys:
+        - ${SSH_KEY}
+      deployments:
+        - name: default
+          pops:
+            - ${COXEDGE_REGION}
+          instancesPerPop: "1"
+      specs: SP-5
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  clusterName: ${CLUSTER_NAME}
+  replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels:
+      machineDeployment: ${CLUSTER_NAME}-md-0
+  template:
+    metadata:
+      labels:
+        machineDeployment: ${CLUSTER_NAME}-md-0
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: NodeletConfigTemplate
+          name: ${CLUSTER_NAME}-md-0
+      clusterName: aws-quickstart
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: CoxMachineTemplate
+        name: ${CLUSTER_NAME}-md-0
+      version: v1.21.3
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CoxMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec:
+      image: stackpath-edge/ubuntu-2004-focal:v202102241556
+      ports:
+        - protocol: TCP
+          publicPort: "22"
+        - protocol: TCP
+          publicPort: "6443"
+      sshAuthorizedKeys:
+        - ${SSH_KEY}
+      deployments:
+        - name: default
+          pops:
+            - ${COXEDGE_REGION}
+          instancesPerPop: "1"
+      specs: SP-5
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: NodeletConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec: {}
