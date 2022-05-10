@@ -1,72 +1,132 @@
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
-  name: cox-example
+  name: pmk-cox-1
+  namespace: default
 spec:
   clusterNetwork:
     pods:
-      cidrBlocks: ["192.168.0.0/16"]
+      cidrBlocks:
+        - 10.20.0.0/22
+    services:
+      cidrBlocks:
+        - 10.21.0.0/22
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: NodeletControlPlane
+    name: pmk-cox-1-control-plane
   infrastructureRef:
-    apiVersion: cluster.capi.pf9.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: CoxCluster
-    name: cox-example
+    name: pmk-cox-1
 ---
-apiVersion: cluster.capi.pf9.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CoxCluster
 metadata:
-  name: cox-example
-  labels:
-    cluster.x-k8s.io/control-plane: "true"
-    cluster.x-k8s.io/cluster-name: "cox-example"
+  name: pmk-cox-1
+  namespace: default
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: NodeletControlPlane
+metadata:
+  name: pmk-cox-1-control-plane
+  namespace: default
+spec:
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: CoxMachineTemplate
+      name: pmk-cox-1-control-plane
+    nodeletConfigSpec: {}
+  replicas: 1
+  version: v1.20.11
+  cni:
+    calico:
+      natOutgoing: true
+      IPIPMode: "Always"
+  schedulable: true
+  apiserver:
+    privileged: true # Needed for calico
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CoxMachineTemplate
+metadata:
+  name: pmk-cox-1-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      image: stackpath-edge/ubuntu-2004-focal:v202102241556
+      ports:
+        - protocol: TCP
+          publicPort: "22"
+        - protocol: TCP
+          publicPort: "6443"
+      sshAuthorizedKeys:
+        - $SSH_KEY
+      deployments:
+        - name: default
+          pops:
+            - LAS
+          instancesPerPop: "1"
+      specs: SP-5
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
-kind: Machine
+kind: MachineDeployment
 metadata:
-  name: cox-example
-  labels:
-    cluster.x-k8s.io/control-plane: "true"
-    cluster.x-k8s.io/cluster-name: "cox-example"
+  name: pmk-cox-1-md-0
+  namespace: default
 spec:
-  version: v1.15.3
-  clusterName: cox-example
-  bootstrap:
-    configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
-      kind: KubeadmConfig
-      name: cox-example
-
-  infrastructureRef:
-    apiVersion: cluster.capi.pf9.io/v1beta1
-    kind: CoxMachine
-    name: cox-example
-
+  clusterName: pmk-cox-1
+  replicas: 1
+  selector:
+    matchLabels:
+      machineDeployment: pmk-cox-1-md-0
+  template:
+    metadata:
+      labels:
+        machineDeployment: pmk-cox-1-md-0
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: NodeletConfigTemplate
+          name: pmk-cox-1-md-0
+      clusterName: aws-quickstart
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: CoxMachineTemplate
+        name: pmk-cox-1-md-0
+      version: v1.20.11
 ---
-apiVersion: cluster.capi.pf9.io/v1beta1
-kind: CoxMachine
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CoxMachineTemplate
 metadata:
-  name: cox-example
-  labels:
-    cluster.x-k8s.io/control-plane: "true"
-    cluster.x-k8s.io/cluster-name: "cox-example"
+  name: pmk-cox-1-md-0
+  namespace: default
 spec:
-  type: VM
-  addanycastipaddress: true
-  image: stackpath-edge/ubuntu-1804-bionic:v202104291427
-  ports:
-    - protocol: TCP
-      publicPort: "22"
-    - protocol: TCP
-      publicPort: "80"
-    - protocol: TCP
-      publicPort: "6443"
-  firstBootSshKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDgnV5MOhBqpQLt66KGlMKi/VYtmVPUt6epSVxnxrvjayNto5flG2sH4cGqdI2C0NE9/w7BFNdwWqp0mL2kYynC8l+SejW/qjx37hrEBWIXqdTyumchm0LD/7K7P7/kz14IV5NcHjNAsntPgKjx/fzJlbA1VCQYmnOq9RZeKme44rdHYW0BBfgMzekcEbyGTNDGp51NYhVafZLXsF8MzCKlJ+NCPlDqzD6w0fQe/qtMFO8NbFyS9/Lk4prp4HAWEyLSM26w1iLycYpbpWrHw6oc1U7bNIgbsa0ezDu4+OPkxeHz7aG5TeJ/dn0Wftzdfy2sy5PJy5MnYP3RTuROsOv+chu+AshZNNJ9A4ar5gFXSX40sQ0i4GzxZGrsKhW42ZP4sElzV74gEBQ2BOIOJUh4qGRtnjsQCJHBs7DLgpeVeGUq2B7p5zDAlJBGCXiHuTgIM8aVnpdnNrFwmr9SF66iaTrt7x8HinNOCIIztMU15Fk2AYSxSEuju1d3VcPt/d0= jasmingacic@Jasmins-MBP
-  deployments:
-    - name: cox-example-deployment
-      pops:
-        - LAX
-      instancesPerPop: "1"
-  specs: SP-5
-  userData: |-
-    runcmd:
-    - curl -sfL https://get.k3s.io | sh -
-    - [ cloud-init-per, once, mymkfs, mkfs, /dev/vdb ]
+  template:
+    spec:
+      image: stackpath-edge/ubuntu-2004-focal:v202102241556
+      ports:
+        - protocol: TCP
+          publicPort: "22"
+        - protocol: TCP
+          publicPort: "6443"
+      sshAuthorizedKeys:
+        - $SSH_KEY
+      deployments:
+        - name: default
+          pops:
+            - LAS
+          instancesPerPop: "1"
+      specs: SP-5
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: NodeletConfigTemplate
+metadata:
+  name: pmk-cox-1-md-0
+  namespace: default
+spec:
+  template:
+    spec: {}
