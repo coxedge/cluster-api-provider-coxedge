@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
 	"github.com/erwinvaneyk/cobras"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )

@@ -1,4 +1,4 @@
-module github.com/platform9/cluster-api-provider-cox
+module github.com/coxedge/cluster-api-provider-cox
 
 go 1.18
 

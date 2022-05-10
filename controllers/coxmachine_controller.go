@@ -37,11 +37,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	coxv1 "github.com/coxedge/cluster-api-provider-cox/api/v1beta1"
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	coxv1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
 )
 
 // CoxMachineReconciler reconciles a CoxMachine object

@@ -29,8 +29,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	clusterv1beta1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
-	//+kubebuilder:scaffold:imports
+	clusterv1beta1 "github.com/coxedge/cluster-api-provider-cox/api/v1beta1"
+	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -63,7 +63,7 @@ var _ = BeforeSuite(func() {
 	err = clusterv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())

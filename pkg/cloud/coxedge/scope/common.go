@@ -6,8 +6,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/pkg/errors"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

@@ -20,7 +20,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	coxv1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
-	"github.com/platform9/cluster-api-provider-cox/controllers"
+	coxv1 "github.com/coxedge/cluster-api-provider-cox/api/v1beta1"
+	"github.com/coxedge/cluster-api-provider-cox/controllers"
 
 	// +kubebuilder:scaffold:imports
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"

@@ -24,8 +24,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
-	coxv1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
+	coxv1 "github.com/coxedge/cluster-api-provider-cox/api/v1beta1"
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"

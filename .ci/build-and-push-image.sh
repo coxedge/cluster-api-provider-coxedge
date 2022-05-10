@@ -16,7 +16,7 @@
 # - DOCKER_PASSWORD Password to login to Dockerhub.
 #
 # Examples:
-# - `USE_SYSTEM_GO=1 IMAGE_REGISTRY=docker.io IMAGE_NAME=platform9/cluster-api-provider-cox-controller IMAGE_TAG=latest ./build-and-push-image.sh`: To test the script locally without gimme and push to Docker
+# - `USE_SYSTEM_GO=1 IMAGE_REGISTRY=docker.io IMAGE_NAME=coxedge/cluster-api-provider-cox-controller IMAGE_TAG=latest ./build-and-push-image.sh`: To test the script locally without gimme and push to Docker
 
 set -o nounset
 set -o errexit

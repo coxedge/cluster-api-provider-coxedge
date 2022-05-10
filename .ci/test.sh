@@ -28,7 +28,7 @@ main() {
 
   # Run all tests
   # TODO(erwin) re-add `make test` when the tests can run without requiring
-  #  access to Cox: https://github.com/platform9/cluster-api-provider-cox/issues/47
+  #  access to Cox: https://github.com/coxedge/cluster-api-provider-cox/issues/47
   make verify
 }
 

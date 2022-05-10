@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/erwinvaneyk/cobras"
 	"github.com/olekukonko/tablewriter"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )

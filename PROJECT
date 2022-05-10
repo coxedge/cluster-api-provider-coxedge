@@ -2,7 +2,7 @@ domain: cluster.x-k8s.io
 layout:
 - go.kubebuilder.io/v3
 projectName: cluster-api-provider-cox
-repo: github.com/platform9/cluster-api-provider-cox
+repo: github.com/coxedge/cluster-api-provider-cox
 resources:
 - api:
     crdVersion: v1
@@ -10,7 +10,7 @@ resources:
   controller: true
   group: infrastructure
   kind: CoxCluster
-  path: github.com/platform9/cluster-api-provider-cox/api/v1beta1
+  path: github.com/coxedge/cluster-api-provider-cox/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -18,7 +18,7 @@ resources:
   controller: true
   group: infrastructure
   kind: CoxMachine
-  path: github.com/platform9/cluster-api-provider-cox/api/v1beta1
+  path: github.com/coxedge/cluster-api-provider-cox/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -26,6 +26,6 @@ resources:
   controller: true
   group: infrastructure
   kind: CoxMachineTemplate
-  path: github.com/platform9/cluster-api-provider-cox/api/v1beta1
+  path: github.com/coxedge/cluster-api-provider-cox/api/v1beta1
   version: v1beta1
 version: "3"

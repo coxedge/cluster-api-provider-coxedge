@@ -19,10 +19,10 @@ package scope
 import (
 	"context"
 
+	coxv1 "github.com/coxedge/cluster-api-provider-cox/api/v1beta1"
+	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	coxv1 "github.com/platform9/cluster-api-provider-cox/api/v1beta1"
-	"github.com/platform9/cluster-api-provider-cox/pkg/cloud/coxedge"
 
 	"k8s.io/klog/v2/klogr"
 
