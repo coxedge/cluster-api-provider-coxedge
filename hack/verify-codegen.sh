@@ -6,7 +6,7 @@ set -o pipefail
 
 PROJECT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 TIMESTAMP=`date +"%Y%m%d%H%M%S"`
-TMPROOT="/tmp/pf9-verify-codegen-"${TIMESTAMP}""
+TMPROOT="/tmp/coxedge-verify-codegen-"${TIMESTAMP}""
 
 cleanup() {
   rm -rf "${TMPROOT}" > /dev/null

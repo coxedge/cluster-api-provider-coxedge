@@ -8,17 +8,11 @@ jobs:
   golangci:
     name: lint
     runs-on: ubuntu-latest
-    env:
-    # Needed to give workflow access to private PF9 repositories
-      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-      GOPRIVATE: github.com/coxedge
     strategy:
       matrix:
         working-directory:
           - ./
     steps:
-      - name: Configure go private repo access
-        run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
       - uses: actions/setup-go@v2
       - uses: actions/checkout@v2
       - name: golangci-lint
