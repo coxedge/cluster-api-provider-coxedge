@@ -210,7 +210,10 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	}
 
 	log.Info("Cluster reconciled.")
-	return ctrl.Result{}, nil
+	return ctrl.Result{
+		// Requeue to make sure that the controller reconciles drift on the Cox Edge side.
+		RequeueAfter: 5 * time.Minute,
+	}, nil
 }
 
 func (r *CoxClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
