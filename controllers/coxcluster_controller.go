@@ -46,6 +46,7 @@ import (
 const (
 	defaultKubeApiserverPort = 6443
 	defaultBackend           = "example.com:80"
+	defaultLoadBalancerImage = "erwinvaneyk/nginx-lb:latest"
 )
 
 // CoxClusterReconciler reconciles a CoxCluster object
@@ -153,11 +154,21 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		apiserverAddresses = []string{defaultBackend}
 	}
 
+	var clusterPort = coxCluster.Spec.ControlPlaneLoadBalancer.Port
+	if clusterPort == 0 {
+		clusterPort = defaultKubeApiserverPort
+	}
+	loadBalancerImage := coxCluster.Spec.ControlPlaneLoadBalancer.Image
+	if len(loadBalancerImage) == 0 {
+		loadBalancerImage = defaultLoadBalancerImage
+	}
+
 	// Ensure that the loadBalancer is created
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	loadBalancerSpec := coxedge.LoadBalancerSpec{
-		Name:     genClusterLoadBalancerName(clusterScope.Name()),
-		Port:     fmt.Sprintf("%d", defaultKubeApiserverPort),
+		Name:     genClusterLoadBalancerName(clusterScope),
+		Image:    loadBalancerImage,
+		Port:     fmt.Sprintf("%d", clusterPort),
 		Backends: apiserverAddresses,
 	}
 	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
@@ -172,7 +183,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
 		return ctrl.Result{Requeue: true}, nil
 	}
-	// The name can be normalized to
+	// Ignore the name of the existing one because it might have been shortened.
 	loadBalancerSpec.Name = existingLoadBalancer.Spec.Name
 	if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
 		existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
@@ -200,6 +211,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		Port: int32(port),
 	}
 	clusterScope.CoxCluster.Status.Ready = true
+	clusterScope.CoxCluster.Status.ControlPlaneLoadBalancer.PublicIP = existingLoadBalancer.Status.PublicIP
 
 	// Hack: requeue as long as the load balancer does not yet have an appropriate backend.
 	if apiserverAddresses[0] == defaultBackend {
@@ -217,7 +229,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 }
 
 func (r *CoxClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
-	loadBalancerName := genClusterLoadBalancerName(clusterScope.Name())
+	loadBalancerName := genClusterLoadBalancerName(clusterScope)
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	err := lbClient.DeleteLoadBalancer(ctx, loadBalancerName)
 	if err != nil {
@@ -250,6 +262,10 @@ func (r *CoxClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return nil
 }
 
-func genClusterLoadBalancerName(clusterName string) string {
-	return fmt.Sprintf("lb-%s", clusterName)
+func genClusterLoadBalancerName(scope *scope.ClusterScope) string {
+	name := scope.CoxCluster.Spec.ControlPlaneLoadBalancer.Name
+	if len(name) == 0 {
+		name = scope.Name()
+	}
+	return fmt.Sprintf("lb-%s", name)
 }
