@@ -22,6 +22,7 @@ type LoadBalancer struct {
 type LoadBalancerSpec struct {
 	Name     string
 	Port     string
+	Image    string
 	Backends []string
 }
 
@@ -56,7 +57,7 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 	_, _, err := l.Client.CreateWorkload(&CreateWorkloadRequest{
 		Name:                payload.Name,
 		Type:                TypeContainer,
-		Image:               "erwinvaneyk/nginx-lb:latest",
+		Image:               payload.Image,
 		AddAnyCastIPAddress: true,
 		Ports: []Port{
 			{
@@ -194,6 +195,7 @@ func parseLoadBalancerSpecFromWorkload(workload *WorkloadData) (*LoadBalancerSpe
 	return &LoadBalancerSpec{
 		Name:     workload.Name,
 		Port:     port,
+		Image:    workload.Image,
 		Backends: backends,
 	}, nil
 }

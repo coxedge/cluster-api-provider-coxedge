@@ -50,8 +50,8 @@ spec:
             description: CoxClusterSpec defines the desired state of CoxCluster
             properties:
               controlPlaneEndpoint:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                  Important: Run "make" to regenerate code after modifying this file'
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
                 properties:
                   host:
                     description: The hostname on which the API server is serving.
@@ -64,9 +64,21 @@ spec:
                 - host
                 - port
                 type: object
+              controlPlaneLoadBalancer:
+                description: ControlPlaneLoadBalancer is optional configuration for
+                  customizing control plane behavior.
+                properties:
+                  image:
+                    type: string
+                  name:
+                    type: string
+                  port:
+                    format: int32
+                    type: integer
+                type: object
               credentials:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
+                description: Credentials is a reference to an identity to be used
+                  when reconciling this cluster.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -77,13 +89,14 @@ spec:
           status:
             description: CoxClusterStatus defines the observed state of CoxCluster
             properties:
+              controlPlaneLoadBalancer:
+                properties:
+                  publicIP:
+                    type: string
+                type: object
               ready:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster Important: Run "make" to regenerate code after modifying
-                  this file'
+                description: Ready denotes that the cluster is ready.
                 type: boolean
-            required:
-            - ready
             type: object
         type: object
     served: true

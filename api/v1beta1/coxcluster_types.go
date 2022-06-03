@@ -33,20 +33,27 @@ const (
 
 // CoxClusterSpec defines the desired state of CoxCluster
 type CoxClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
 
+	// Credentials is a reference to an identity to be used when reconciling this cluster.
 	// +optional
 	Credentials *corev1.LocalObjectReference `json:"credentials,omitempty"`
+
+	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior.
+	// +optional
+	ControlPlaneLoadBalancer CoxLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
 }
 
 // CoxClusterStatus defines the observed state of CoxCluster
 type CoxClusterStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Ready denotes that the cluster is ready.
+	// +optional
 	Ready bool `json:"ready"`
+
+	// +optional
+	ControlPlaneLoadBalancer CoxLoadBalancerStatus `json:"controlPlaneLoadBalancer,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -71,6 +78,22 @@ type CoxClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []CoxCluster `json:"items"`
+}
+
+type CoxLoadBalancerSpec struct {
+	// +optional
+	Name string `json:"name"`
+
+	// +optional
+	Image string `json:"image,omitempty"`
+
+	// +optional
+	Port int32 `json:"port,omitempty"`
+}
+
+type CoxLoadBalancerStatus struct {
+	// +optional
+	PublicIP string `json:"publicIP"`
 }
 
 func init() {
