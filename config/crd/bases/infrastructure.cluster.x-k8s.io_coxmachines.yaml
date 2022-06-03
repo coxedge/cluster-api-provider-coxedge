@@ -53,14 +53,9 @@ spec:
           spec:
             description: CoxMachineSpec defines the desired state of CoxMachine
             properties:
-              addanycastipaddress:
-                description: AddAnyCastIPAddress enables AnyCast IP Address
+              addAnycastIPAddress:
+                description: AddAnyCastIPAddress enables the AnyCast IP Address feature.
                 type: boolean
-              commands:
-                description: Container command
-                items:
-                  type: string
-                type: array
               deployments:
                 description: Deployment targets
                 items:
@@ -88,15 +83,14 @@ spec:
                   type: object
                 type: array
               image:
-                description: Image is used if Type is set to container then Docker
-                  image that will be run in a container. The version can be specified
-                  (i.e. nginx:latest).
+                description: Image is a reference to the OS image that should be used
+                  to provision the VM.
                 type: string
               persistentStorages:
                 description: PersistentStorages mount storage volumes to your workload
                   instances.
                 items:
-                  description: PersistentStorage defines instances' mounted persistend
+                  description: PersistentStorage defines instances' mounted persistent
                     storage options
                   properties:
                     path:
@@ -129,6 +123,8 @@ spec:
                   cloud provider.
                 type: string
               specs:
+                description: Specs contains the flavor of the machine. For example,
+                  SP-5.
                 type: string
               sshAuthorizedKeys:
                 description: SSHAuthorizedKeys contains the public SSH keys that should
@@ -137,12 +133,6 @@ spec:
                 items:
                   type: string
                 type: array
-              type:
-                description: Type represents CoxEdge workload type VM or CONTAINER
-                type: string
-              userData:
-                description: User data compatible with cloud-init
-                type: string
             type: object
           status:
             description: CoxMachineStatus defines the observed state of CoxMachine

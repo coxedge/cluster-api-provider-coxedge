@@ -32,61 +32,69 @@ const (
 
 // CoxMachineSpec defines the desired state of CoxMachine
 type CoxMachineSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	// ProviderID is the unique identifier as specified by the cloud provider.
 	// +optional
 	ProviderID string `json:"providerID,omitempty"`
 
-	// Type represents CoxEdge workload type VM or CONTAINER
-	Type string `json:"type,omitempty"`
-
-	// AddAnyCastIPAddress enables AnyCast IP Address
+	// AddAnyCastIPAddress enables the AnyCast IP Address feature.
 	// +optional
-	AddAnyCastIPAddress bool `json:"addanycastipaddress,omitempty"`
+	AddAnyCastIPAddress bool `json:"addAnycastIPAddress,omitempty"`
 
 	// PersistentStorages mount storage volumes to your workload instances.
 	// +optional
 	PersistentStorages []PersistentStorage `json:"persistentStorages,omitempty"`
 
 	// Expose any ports required by your workload instances
+	// +optional
 	Ports []Port `json:"ports,omitempty"`
 
 	// SSHAuthorizedKeys contains the public SSH keys that should be added to
 	// the machine on first boot. In the CoxEdge API this field is equivalent
 	// to `firstBootSSHKey`.
+	// +optional
 	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
 
 	// Deployment targets
+	// +optional
 	Deployments []Deployment `json:"deployments,omitempty"`
-	Specs       string       `json:"specs,omitempty"`
 
-	// Image is used if Type is set to container then Docker image that will be run in a container. The version can be specified (i.e. nginx:latest).
+	// Specs contains the flavor of the machine. For example, SP-5.
+	// +optional
+	Specs string `json:"specs,omitempty"`
+
+	// Image is a reference to the OS image that should be used to provision
+	// the VM.
+	// +optional
 	Image string `json:"image,omitempty"`
 
-	// Container command
-	// +optional
-	Commands []string `json:"commands,omitempty"`
 	// User data compatible with cloud-init
-	UserData string `json:"userData,omitempty"`
+	// +optional
+	// UserData string `json:"userData,omitempty"`
 }
 
 // Deployment defines instance specifications
 type Deployment struct {
 	// Name of the deployment instance
+	// +optional
 	Name string `json:"name,omitempty"`
+
 	// CoxEdge PoPs - geographical location for the instance
+	// +optional
 	Pops []string `json:"pops,omitempty"`
+
 	// +optional
 	EnableAutoScaling bool `json:"enableAutoScaling,omitempty"`
+
 	// number of instances per each PoP defined
 	// +optional
 	InstancesPerPop string `json:"instancesPerPop,omitempty"`
+
 	// +optional
 	CPUUtilization int `json:"cpuUtilization,omitempty"`
+
 	// +optional
 	MinInstancesPerPop int `json:"minInstancesPerPop,omitempty"`
+
 	// +optional
 	MaxInstancesPerPop int `json:"maxInstancesPerPop,omitempty"`
 }
@@ -98,7 +106,7 @@ type Port struct {
 	PublicPortDesc string `json:"publicPortDesc,omitempty"`
 }
 
-// PersistentStorage defines instances' mounted persistend storage options
+// PersistentStorage defines instances' mounted persistent storage options
 type PersistentStorage struct {
 	Path string `json:"path"`
 	Size string `json:"size"`
