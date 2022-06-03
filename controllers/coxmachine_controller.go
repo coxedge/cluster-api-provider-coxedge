@@ -226,16 +226,11 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		return ctrl.Result{}, err
 	}
 
-	machineType := machineScope.CoxMachine.Spec.Type
-	if len(machineType) == 0 {
-		machineType = coxedge.TypeVM
-	}
-
 	if workload == nil {
 		// create workload
 		data := &coxedge.CreateWorkloadRequest{
 			Name:                machineScope.Name(),
-			Type:                machineType,
+			Type:                coxedge.TypeVM,
 			Image:               machineScope.CoxMachine.Spec.Image,
 			AddAnyCastIPAddress: machineScope.CoxMachine.Spec.AddAnyCastIPAddress,
 			FirstBootSSHKey:     strings.Join(machineScope.CoxMachine.Spec.SSHAuthorizedKeys, "\n"),
