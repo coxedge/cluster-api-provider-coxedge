@@ -51,17 +51,17 @@ func NewClient(service, environment, apiKey string, httpClient *http.Client) (*C
 }
 
 // curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads/549ec584-c62b-4647-9ca0-f04f9a88403d'
-func (c *Client) GetWorkload(id string) (*Workload, *ErrorResponse, error) {
+func (c *Client) GetWorkload(id string) (*Workload, error) {
 	w := &Workload{}
-	resp, err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, id), nil, w)
+	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, id), nil, w)
 	if err != nil {
-		return nil, resp, err
+		return nil, err
 	}
-	return w, resp, nil
+	return w, nil
 }
 
 func (c *Client) GetWorkloadByName(name string) (*WorkloadData, error) {
-	workloads, _, err := c.GetWorkloads()
+	workloads, err := c.GetWorkloads()
 	if err != nil {
 		return nil, err
 	}
@@ -76,38 +76,38 @@ func (c *Client) GetWorkloadByName(name string) (*WorkloadData, error) {
 }
 
 // curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads'
-func (c *Client) GetWorkloads() (*Workloads, *ErrorResponse, error) {
+func (c *Client) GetWorkloads() (*Workloads, error) {
 	w := &Workloads{}
-	resp, err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads", c.service, c.environment), nil, w)
+	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads", c.service, c.environment), nil, w)
 	if err != nil {
-		return nil, resp, err
+		return nil, err
 	}
-	return w, resp, nil
+	return w, nil
 }
 
 // curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/instances?workloadId=5e1eb085-e9b3-447b-8a0e-c0147fc0ea4d' | jq
-func (c *Client) GetInstances(workloadID string) (*Instances, *ErrorResponse, error) {
+func (c *Client) GetInstances(workloadID string) (*Instances, error) {
 	i := &Instances{}
-	resp, err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances?workloadId=%s", c.service, c.environment, workloadID), nil, i)
+	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances?workloadId=%s", c.service, c.environment, workloadID), nil, i)
 	if err != nil {
-		return nil, resp, err
+		return nil, err
 	}
-	return i, resp, nil
+	return i, nil
 }
 
 // curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/instances/5e1eb085-e9b3-447b-8a0e-c0147fc0ea4d/capi-test-jg90-wi-peter-qhl-waw-0' | jq
-func (c *Client) GetInstance(instanceID string) (*Instance, *ErrorResponse, error) {
+func (c *Client) GetInstance(instanceID string) (*Instance, error) {
 	i := &Instance{}
-	resp, err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances/%s", c.service, c.environment, instanceID), nil, i)
+	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances/%s", c.service, c.environment, instanceID), nil, i)
 	if err != nil {
-		return nil, resp, err
+		return nil, err
 	}
-	return i, resp, nil
+	return i, nil
 }
 
 func (c *Client) GetTask(taskID string) (*Task, error) {
 	t := &Task{}
-	_, err := c.DoRequest("GET", fmt.Sprintf("/tasks/%s", taskID), nil, t)
+	err := c.DoRequest("GET", fmt.Sprintf("/tasks/%s", taskID), nil, t)
 	if err != nil {
 		return nil, err
 	}
@@ -131,41 +131,49 @@ func (c *Client) WaitForWorkload(taskID string) (string, error) {
 }
 
 // curl -X 'POST' -d '{"name":"capi-test-jg90","type":"VM","image":"stackpath-edge/centos-7:v202103021226","addAnyCastIpAddress":true,"ports":[{"protocol":"TCP","publicPort":"22"},{"protocol":"TCP","publicPort":"80"}],"firstBootSshKey":"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDgnV5MOhBqpQLt66KGlMKi/VYtmVPUt6epSVxnxrvjayNto5flG2sH4cGqdI2C0NE9/w7BFNdwWqp0mL2kYynC8l+SejW/qjx37hrEBWIXqdTyumchm0LD/7K7P7/kz14IV5NcHjNAsntPgKjx/fzJlbA1VCQYmnOq9RZeKme44rdHYW0BBfgMzekcEbyGTNDGp51NYhVafZLXsF8MzCKlJ+NCPlDqzD6w0fQe/qtMFO8NbFyS9/Lk4prp4HAWEyLSM26w1iLycYpbpWrHw6oc1U7bNIgbsa0ezDu4+OPkxeHz7aG5TeJ/dn0Wftzdfy2sy5PJy5MnYP3RTuROsOv+chu+AshZNNJ9A4ar5gFXSX40sQ0i4GzxZGrsKhW42ZP4sElzV74gEBQ2BOIOJUh4qGRtnjsQCJHBs7DLgpeVeGUq2B7p5zDAlJBGCXiHuTgIM8aVnpdnNrFwmr9SF66iaTrt7x8HinNOCIIztMU15Fk2AYSxSEuju1d3VcPt/d0= jasmingacic@Jasmins-MBP","deployments":[{"name":"wi-peter-qhl","pops":["WAW"],"instancesPerPop":"1"}],"specs":"SP-5"}' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads'
-func (c *Client) CreateWorkload(data *CreateWorkloadRequest) (*POSTResponse, *ErrorResponse, error) {
+func (c *Client) CreateWorkload(data *CreateWorkloadRequest) (*POSTResponse, error) {
 	pr := &POSTResponse{}
-
 	data.Name = shortenName(data.Name, 18)
 
-	resp, err := c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads", c.service, c.environment), data, pr)
-
-	return pr, resp, err
-}
-
-func (c *Client) DeleteWorkload(workloadID string) (*POSTResponse, *ErrorResponse, error) {
-	pr := &POSTResponse{}
-	wl, _, err := c.GetWorkload(workloadID)
+	err := c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads", c.service, c.environment), data, pr)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	resp, err := c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads/%s?operation=delete", c.service, c.environment, workloadID), wl.Data, pr)
-
-	return pr, resp, err
+	return pr, nil
 }
 
-func (c *Client) UpdateWorkload(workloadID string, workload WorkloadData) (*POSTResponse, *ErrorResponse, error) {
+func (c *Client) DeleteWorkload(workloadID string) (*POSTResponse, error) {
+	pr := &POSTResponse{}
+	wl, err := c.GetWorkload(workloadID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads/%s?operation=delete", c.service, c.environment, workloadID), wl.Data, pr)
+	if err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}
+
+func (c *Client) UpdateWorkload(workloadID string, workload WorkloadData) (*POSTResponse, error) {
 	pr := &POSTResponse{}
 	workload.Name = shortenName(workload.Name, 18)
 
-	resp, err := c.DoRequest("PUT", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, workloadID), workload, pr)
-
-	return pr, resp, err
-}
-
-func (c *Client) DoRequest(method, path string, body, v interface{}) (*ErrorResponse, error) {
-	req, err := c.NewRequest(method, path, body)
+	err := c.DoRequest("PUT", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, workloadID), workload, pr)
 	if err != nil {
 		return nil, err
+	}
+
+	return pr, err
+}
+
+func (c *Client) DoRequest(method, path string, body, v interface{}) error {
+	req, err := c.NewRequest(method, path, body)
+	if err != nil {
+		return err
 	}
 
 	return c.Do(req, v)
@@ -184,49 +192,47 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 	u := c.baseURL.ResolveReference(rel)
 	var req *http.Request
 	if body != nil {
-		bodyBytes, _ := json.Marshal(body)
-		req, _ = http.NewRequest(method, u.String(), bytes.NewBuffer(bodyBytes))
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		req, err = http.NewRequest(method, u.String(), bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			return nil, err
+		}
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		req, _ = http.NewRequest(method, u.String(), nil)
+		req, err = http.NewRequest(method, u.String(), nil)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if err != nil {
-		return nil, err
-	}
-
+	req.Header.Add("MC-Api-Key", c.apiKey)
 	req.Close = true
 
-	req.Header.Add("MC-Api-Key", c.apiKey)
 	return req, nil
 }
 
-func (c *Client) Do(req *http.Request, v interface{}) (*ErrorResponse, error) {
+func (c *Client) Do(req *http.Request, v interface{}) error {
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer resp.Body.Close()
-	if resp.StatusCode > 299 {
+	if resp.StatusCode >= 300 {
 		o, _ := io.ReadAll(resp.Body)
-		errResp := &ErrorResponse{
+		return &HTTPError{
 			StatusCode: resp.StatusCode,
-			Errors:     string(o),
+			Message:    string(o),
 		}
-
-		return errResp, fmt.Errorf("%s returned %d", req.URL, resp.StatusCode)
 	}
 	o, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = json.Unmarshal(o, v)
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, err
+	return json.Unmarshal(o, v)
 }
 
 func shortenName(name string, limit int) string {
@@ -384,9 +390,15 @@ type Metadata struct {
 	RecordCount int `json:"recordCount"`
 }
 
-type ErrorResponse struct {
+type HTTPError struct {
 	StatusCode int
-	Errors     string
+	Message    string
+}
+
+var _ error = (*HTTPError)(nil)
+
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("coxedge http client: %s (%d)", e.Message, e.StatusCode)
 }
 
 type Task struct {

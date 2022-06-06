@@ -131,21 +131,21 @@ func (m *MachineScope) Namespace() string {
 	return m.CoxMachine.Namespace
 }
 
-// GetProviderID returns the DOMachine providerID from the spec.
+// GetProviderID returns the CoxMachine providerID from the spec.
 func (m *MachineScope) GetProviderID() string {
 	return m.CoxMachine.Spec.ProviderID
 }
 
-// SetProviderID sets the DOMachine providerID in spec from device id.
+// SetProviderID sets the CoxMachine providerID in spec from device id.
 func (m *MachineScope) SetProviderID(deviceID string) {
 	pid := fmt.Sprintf("coxedge://%s", deviceID)
 
 	m.CoxMachine.Spec.ProviderID = pid
 }
 
-// GetInstanceID returns the DOMachine droplet instance id by parsing Spec.ProviderID.
-func (m *MachineScope) GetInstanceID() string {
-	return strings.Replace(m.CoxMachine.Spec.ProviderID, "coxedge://", "", -1)
+// GetWorkloadID returns the CoxMachine droplet instance id by parsing Spec.ProviderID.
+func (m *MachineScope) GetWorkloadID() string {
+	return strings.Replace(m.GetProviderID(), "coxedge://", "", -1)
 }
 
 // SetErrorMessage sets the CoxMachine status error message.

@@ -1,6 +1,7 @@
 package coxedge
 
 import (
+	"errors"
 	"math/rand"
 	"os"
 	"testing"
@@ -68,10 +69,9 @@ func TestCreateWorkload(t *testing.T) {
 		},
 		Specs: "SP-5",
 	}
-	pr, resp, err := c.CreateWorkload(workload)
+	pr, err := c.CreateWorkload(workload)
 
 	if err != nil {
-		t.Log(resp)
 		t.Log(err)
 		t.Fail()
 		return
@@ -88,10 +88,9 @@ func TestGetWorkloads(t *testing.T) {
 	if skip {
 		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
 	}
-	_, resp, err := c.GetWorkloads()
+	_, err := c.GetWorkloads()
 
 	if err != nil {
-		t.Log(resp)
 		t.Log(err)
 		t.Fail()
 		return
@@ -102,10 +101,9 @@ func TestGetWorkload(t *testing.T) {
 	if skip {
 		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
 	}
-	wl, resp, err := c.GetWorkload(wlID)
+	wl, err := c.GetWorkload(wlID)
 
 	if err != nil {
-		t.Log(resp)
 		t.Log(err)
 		t.Fail()
 		return
@@ -120,10 +118,9 @@ func TestGetInstances(t *testing.T) {
 	if skip {
 		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
 	}
-	_, resp, err := c.GetInstances(wlID)
+	_, err := c.GetInstances(wlID)
 
 	if err != nil {
-		t.Log(resp)
 		t.Log(err)
 		t.Fail()
 		return
@@ -134,7 +131,7 @@ func TestUpdate(t *testing.T) {
 	if skip {
 		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
 	}
-	wl, _, _ := c.GetWorkload(wlID)
+	wl, _ := c.GetWorkload(wlID)
 
 	if wl == nil {
 		t.Fail()
@@ -143,7 +140,7 @@ func TestUpdate(t *testing.T) {
 
 	data := wl.Data
 	data.EnvironmentVariable = append(data.EnvironmentVariable, EnvironmentVariable{Key: "JASMIN", Value: "jasmin"})
-	r, _, err := c.UpdateWorkload(wl.Data.ID, data)
+	r, err := c.UpdateWorkload(wl.Data.ID, data)
 	t.Log(r)
 	t.Log(err)
 }
@@ -152,8 +149,15 @@ func TestDeleteWorkload(t *testing.T) {
 	if skip {
 		t.Skip("COX_SKIP_TESTS is set. Skipping!!!")
 	}
-	tt, r, err := c.DeleteWorkload(wlID)
+	tt, err := c.DeleteWorkload(wlID)
 	t.Log(tt)
-	t.Log(r)
 	t.Log(err)
+}
+
+func TestRespError(t *testing.T) {
+	err := &HTTPError{}
+	unwrapErr := &HTTPError{}
+	if !errors.As(err, &unwrapErr) {
+		t.Fail()
+	}
 }
