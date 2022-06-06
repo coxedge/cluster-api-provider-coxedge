@@ -45,7 +45,7 @@ func (o *WorkloadDeleteOptions) Run(ctx context.Context) error {
 	}
 
 	for _, workloadID := range o.workloadID {
-		_, _, err := client.DeleteWorkload(workloadID)
+		_, err := client.DeleteWorkload(workloadID)
 		if err != nil {
 			log.Errorf("Failed to delete workload '%s': %v", workloadID, err)
 			continue

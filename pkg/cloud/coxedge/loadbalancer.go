@@ -45,7 +45,7 @@ func (l *LoadBalancerHelper) GetLoadBalancer(ctx context.Context, name string) (
 		return nil, err
 	}
 
-	instances, _, err := l.Client.GetInstances(workload.ID)
+	instances, err := l.Client.GetInstances(workload.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (l *LoadBalancerHelper) GetLoadBalancer(ctx context.Context, name string) (
 }
 
 func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *LoadBalancerSpec) error {
-	_, _, err := l.Client.CreateWorkload(&CreateWorkloadRequest{
+	_, err := l.Client.CreateWorkload(&CreateWorkloadRequest{
 		Name:                payload.Name,
 		Type:                TypeContainer,
 		Image:               payload.Image,
@@ -122,7 +122,7 @@ func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *Lo
 		},
 	}
 
-	_, _, err = l.Client.UpdateWorkload(workload.ID, *workload)
+	_, err = l.Client.UpdateWorkload(workload.ID, *workload)
 	if err != nil {
 		return fmt.Errorf("failed to update loadBalancer: %w", err)
 	}
@@ -138,7 +138,7 @@ func (l *LoadBalancerHelper) DeleteLoadBalancer(ctx context.Context, name string
 		return nil
 	}
 
-	_, _, err = l.Client.DeleteWorkload(workload.ID)
+	_, err = l.Client.DeleteWorkload(workload.ID)
 	if err != nil {
 		return err
 	}

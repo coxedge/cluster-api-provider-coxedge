@@ -49,7 +49,7 @@ func (o *WorkloadListOptions) Run(ctx context.Context) error {
 	}
 
 	log.Debug("Fetching all workloads")
-	workloads, _, err := client.GetWorkloads()
+	workloads, err := client.GetWorkloads()
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (o *WorkloadListOptions) Run(ctx context.Context) error {
 		table.SetCenterSeparator("|")
 		table.SetAutoWrapText(false)
 		for _, workload := range workloads.Data {
-			instances, _, err := client.GetInstances(workload.ID)
+			instances, err := client.GetInstances(workload.ID)
 			if err != nil {
 				return err
 			}

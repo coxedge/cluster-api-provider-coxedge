@@ -19,7 +19,9 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -41,7 +43,11 @@ import (
 	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+)
+
+var (
+	errWorkloadDeploymentInProgress = errors.New("machine deployment is still in progress")
+	errWorkloadDeploymentNotFound   = errors.New("machine deployment has not been started")
 )
 
 // CoxMachineReconciler reconciles a CoxMachine object
@@ -117,7 +123,7 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		DefaultCredentials: r.DefaultCredentials,
 	})
 	if err != nil {
-		return ctrl.Result{}, errors.Errorf("failed to create scope: %+v", err)
+		return ctrl.Result{}, fmt.Errorf("failed to create scope: %w", err)
 	}
 
 	// Always close the scope when exiting this function so we can persist any CoxMachine changes.
@@ -132,12 +138,15 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return r.reconcileDelete(ctx, machineScope, logger)
 	}
 
-	return r.reconcile(ctx, machineScope, logger)
+	return r.reconcileNormal(ctx, machineScope, logger)
 }
 
-func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
+func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Reconciling CoxMachine")
 	coxMachine := machineScope.CoxMachine
+
+	// Add the finalizer to the CoxMachine if it does not exist yet.
+	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
 
 	// Check if the cluster was found
 	if machineScope.Cluster == nil {
@@ -151,9 +160,6 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 			cluster.Spec.InfrastructureRef.Name,
 		)
 	}
-
-	// Add the finalizer to the CoxMachine if it does not exist yet.
-	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
 
 	// Make sure that the cluster infrastructure is ready.
 	if !machineScope.Cluster.Status.InfrastructureReady {
@@ -173,114 +179,76 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		return ctrl.Result{}, fmt.Errorf(*coxMachine.Status.ErrorMessage)
 	}
 
-	// Set the ProviderID if the CoxMachine is already present
-	if machineScope.GetProviderID() == "" {
-		workload, err := machineScope.CoxClient.GetWorkloadByName(machineScope.CoxMachine.Name)
-		if err != nil && err != coxedge.ErrWorkloadNotFound {
-			return ctrl.Result{}, err
-		}
-
-		// If machine is not ready check for provisioning status
-		if !machineScope.CoxMachine.Status.Ready && machineScope.CoxMachine.Status.TaskID != "" {
-			t, err := machineScope.CoxClient.GetTask(machineScope.CoxMachine.Status.TaskID)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			machineScope.CoxMachine.Status.TaskStatus = t.Data.Status
-
-			switch machineScope.CoxMachine.Status.TaskStatus {
-			case "SUCCESS":
-				// once the workload is "RUNNING" set provider ID and machine status to ready
-				machineScope.CoxMachine.Status.Ready = true
-				machineScope.SetProviderID(t.Data.Result.WorkloadID)
-			case "FAILURE":
-				return ctrl.Result{}, fmt.Errorf("provisioning of workload failed")
-			default:
-				return ctrl.Result{
-					// Requeue until the machine is ready
-					RequeueAfter: 1 * time.Minute,
-				}, nil
-			}
-		}
-
-		if workload != nil {
-			machineScope.SetProviderID(workload.ID)
-		}
-	}
-
-	var (
-		workload   *coxedge.Workload
-		err        error
-		workloadID string
-	)
-	providerID := machineScope.GetInstanceID()
-	if providerID != "" {
-		workload, _, err = machineScope.CoxClient.GetWorkload(providerID)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-	bootstrapData, err := machineScope.GetRawBootstrapData()
+	// Set the ProviderID if the CoxMachine is already present=
+	err := r.reconcileWorkload(machineScope)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if workload == nil {
-		// create workload
-		data := &coxedge.CreateWorkloadRequest{
-			Name:                machineScope.Name(),
-			Type:                coxedge.TypeVM,
-			Image:               machineScope.CoxMachine.Spec.Image,
-			AddAnyCastIPAddress: machineScope.CoxMachine.Spec.AddAnyCastIPAddress,
-			FirstBootSSHKey:     strings.Join(machineScope.CoxMachine.Spec.SSHAuthorizedKeys, "\n"),
-			Specs:               machineScope.CoxMachine.Spec.Specs,
-			UserData:            bootstrapData,
-		}
-
-		data.Ports = []coxedge.Port{}
-
-		for _, port := range machineScope.CoxMachine.Spec.Ports {
-			p := coxedge.Port{
-				Protocol:       port.Protocol,
-				PublicPort:     port.PublicPort,
-				PublicPortDesc: port.PublicPortDesc,
+		switch err {
+		case errWorkloadDeploymentNotFound, coxedge.ErrWorkloadNotFound:
+			logger.Info("No CoxEdge workload found for this machine; creating it.")
+			bootstrapData, err := machineScope.GetRawBootstrapData()
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to get bootstrap data: %w", err)
 			}
 
-			data.Ports = append(data.Ports, p)
-		}
-
-		data.Deployments = []coxedge.Deployment{}
-		for _, deployment := range machineScope.CoxMachine.Spec.Deployments {
-			d := coxedge.Deployment{
-				Name:               deployment.Name,
-				Pops:               deployment.Pops,
-				EnableAutoScaling:  deployment.EnableAutoScaling,
-				InstancesPerPop:    deployment.InstancesPerPop,
-				CPUUtilization:     deployment.CPUUtilization,
-				MinInstancesPerPop: deployment.MinInstancesPerPop,
-				MaxInstancesPerPop: deployment.MaxInstancesPerPop,
+			data := &coxedge.CreateWorkloadRequest{
+				Name:                machineScope.Name(),
+				Type:                coxedge.TypeVM,
+				Image:               machineScope.CoxMachine.Spec.Image,
+				AddAnyCastIPAddress: machineScope.CoxMachine.Spec.AddAnyCastIPAddress,
+				FirstBootSSHKey:     strings.Join(machineScope.CoxMachine.Spec.SSHAuthorizedKeys, "\n"),
+				Specs:               machineScope.CoxMachine.Spec.Specs,
+				UserData:            bootstrapData,
 			}
-			data.Deployments = append(data.Deployments, d)
+
+			for _, port := range machineScope.CoxMachine.Spec.Ports {
+				p := coxedge.Port{
+					Protocol:       port.Protocol,
+					PublicPort:     port.PublicPort,
+					PublicPortDesc: port.PublicPortDesc,
+				}
+				data.Ports = append(data.Ports, p)
+			}
+
+			data.Deployments = []coxedge.Deployment{}
+			for _, deployment := range machineScope.CoxMachine.Spec.Deployments {
+				d := coxedge.Deployment{
+					Name:               deployment.Name,
+					Pops:               deployment.Pops,
+					EnableAutoScaling:  deployment.EnableAutoScaling,
+					InstancesPerPop:    deployment.InstancesPerPop,
+					CPUUtilization:     deployment.CPUUtilization,
+					MinInstancesPerPop: deployment.MinInstancesPerPop,
+					MaxInstancesPerPop: deployment.MaxInstancesPerPop,
+				}
+				data.Deployments = append(data.Deployments, d)
+			}
+
+			resp, err := machineScope.CoxClient.CreateWorkload(data)
+			if err != nil {
+				errResp := &coxedge.HTTPError{}
+				if errors.As(err, &errResp) {
+					jsn, _ := json.Marshal(errResp)
+					return ctrl.Result{}, fmt.Errorf("error occurred while creating workload: %v - response: %v", err, string(jsn))
+				}
+				return ctrl.Result{}, fmt.Errorf("error occurred while creating workload: %w", err)
+			}
+
+			// Since the workload has just been created we have to requeue and poll for provisioning status with task ID
+			machineScope.CoxMachine.Status.TaskID = resp.TaskID
+			return ctrl.Result{}, nil
+		case errWorkloadDeploymentInProgress:
+			return ctrl.Result{
+				// Requeue until the machine is ready
+				RequeueAfter: 1 * time.Minute,
+			}, nil
+		default:
+			return ctrl.Result{}, fmt.Errorf("error while reconciling workload: %w", err)
 		}
-
-		resp, errResp, err := machineScope.CoxClient.CreateWorkload(data)
-
-		if err != nil {
-			jsn, _ := json.Marshal(errResp)
-			return ctrl.Result{}, fmt.Errorf("error occurred while creating workload: %v - response: %v", err, string(jsn))
-		}
-
-		// Since the workload has just been created we have to requeue and poll for provisioning status with task ID
-		machineScope.CoxMachine.Status.TaskID = resp.TaskID
-
-		return ctrl.Result{
-			RequeueAfter: 1 * time.Minute,
-		}, nil
 	}
-	workloadID = workload.Data.ID
 
-	instances, _, err := machineScope.CoxClient.GetInstances(workloadID)
+	workloadID := machineScope.GetWorkloadID()
+	logger.Info("Checking the workload's instance status", "workloadID", workloadID)
+	instances, err := machineScope.CoxClient.GetInstances(workloadID)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -304,6 +272,7 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 		},
 	})
 
+	machineScope.CoxMachine.Status.Ready = true
 	return ctrl.Result{
 		// Requeue to make sure that the CoxMachine controller detects when the VM died on CoxEdge
 		RequeueAfter: 5 * time.Minute,
@@ -312,26 +281,41 @@ func (r *CoxMachineReconciler) reconcile(ctx context.Context, machineScope *scop
 
 func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Deleting machine")
-	// check if workload exists
-	providerID := machineScope.GetInstanceID()
-	wl, resp, err := machineScope.CoxClient.GetWorkload(providerID)
+	err := r.reconcileWorkload(machineScope)
 	if err != nil {
-		if resp.StatusCode == 404 {
-			logger.Info("unable to find CoxMachine", "errors", resp.Errors)
-		} else {
+		switch err {
+		case errWorkloadDeploymentNotFound, coxedge.ErrWorkloadNotFound:
+			logger.Info("Machine does not contain a ProviderID or TaskID; assuming that the machine deployment never started.")
+			controllerutil.RemoveFinalizer(machineScope.CoxMachine, coxv1.MachineFinalizer)
+			return ctrl.Result{}, nil
+		case errWorkloadDeploymentInProgress:
+			logger.Info("Machine deployment still in progress, waiting for it to complete before deleting the machine.")
+			return ctrl.Result{
+				// Requeue until the machine is ready
+				RequeueAfter: 1 * time.Minute,
+			}, nil
+		default:
 			return ctrl.Result{}, err
 		}
 	}
 
-	if wl != nil {
-		if providerID != "" {
-			_, _, err := machineScope.CoxClient.DeleteWorkload(providerID)
-			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to delete the machine: %v", err)
-			}
+	workloadID := machineScope.GetWorkloadID()
+	logger.Info("Checking if the workload already has been deleted")
+	_, err = machineScope.CoxClient.GetWorkload(workloadID)
+	if err != nil {
+		respErr := &coxedge.HTTPError{}
+		if errors.As(err, &respErr) && respErr.StatusCode == http.StatusNotFound {
+			logger.Info("Could not find workload, assuming it was deleted.")
+			controllerutil.RemoveFinalizer(machineScope.CoxMachine, coxv1.MachineFinalizer)
+			return ctrl.Result{}, nil
 		}
-	} else {
-		logger.Info("unable to find CoxMachine")
+		return ctrl.Result{}, fmt.Errorf("failed to delete the machine: %v", err)
+	}
+
+	logger.Info("Deleting the machine", "workloadID", workloadID)
+	_, err = machineScope.CoxClient.DeleteWorkload(workloadID)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to delete the machine: %v", err)
 	}
 
 	controllerutil.RemoveFinalizer(machineScope.CoxMachine, coxv1.MachineFinalizer)
@@ -354,12 +338,12 @@ func (r *CoxMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		).
 		Build(r)
 	if err != nil {
-		return errors.Wrapf(err, "error creating controller")
+		return fmt.Errorf("error creating controller: %w", err)
 	}
 
 	clusterToObjectFunc, err := util.ClusterToObjectsMapper(r.Client, &coxv1.CoxMachineList{}, mgr.GetScheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to create mapper for Cluster to DOMachines")
+		return fmt.Errorf("failed to create mapper for Cluster to CoxMachines: %w", err)
 	}
 
 	// Add a watch on clusterv1.Cluster object for unpause & ready notifications.
@@ -368,7 +352,7 @@ func (r *CoxMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		handler.EnqueueRequestsFromMapFunc(clusterToObjectFunc),
 		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 	); err != nil {
-		return errors.Wrapf(err, "failed adding a watch for ready clusters")
+		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}
 
 	return nil
@@ -381,7 +365,7 @@ func (r *CoxMachineReconciler) CoxClusterToCoxMachines(ctx context.Context) hand
 
 		c, ok := o.(*coxv1.CoxCluster)
 		if !ok {
-			log.Error(errors.Errorf("expected a CoxCluster but got a %T", o), "failed to get CoxMachine for CoxCluster")
+			log.Error(fmt.Errorf("expected a CoxCluster but got a %T", o), "failed to get CoxMachine for CoxCluster")
 			return nil
 		}
 
@@ -410,4 +394,44 @@ func (r *CoxMachineReconciler) CoxClusterToCoxMachines(ctx context.Context) hand
 
 		return result
 	}
+}
+
+// reconcileWorkload tries to determine the ProviderID / WorkloadID
+// associated with the CoxMachine. If it could be retrieved, it will set it has
+// the ProviderID of the workload. If not, it will return an error.
+//
+// Note: it does not guarantee that thew referenced workload exists.
+func (r *CoxMachineReconciler) reconcileWorkload(machineScope *scope.MachineScope) error {
+	workload, err := machineScope.CoxClient.GetWorkloadByName(machineScope.CoxMachine.Name)
+	if err != nil {
+		if err != coxedge.ErrWorkloadNotFound {
+			return err
+		}
+		if len(machineScope.CoxMachine.Spec.ProviderID) > 0 {
+			return coxedge.ErrWorkloadNotFound
+		}
+
+		if machineScope.CoxMachine.Status.TaskID == "" {
+			return errWorkloadDeploymentNotFound
+		}
+
+		// If machine is not ready check for provisioning status
+		task, err := machineScope.CoxClient.GetTask(machineScope.CoxMachine.Status.TaskID)
+		if err != nil {
+			return err
+		}
+		machineScope.CoxMachine.Status.TaskStatus = task.Data.Status
+
+		switch machineScope.CoxMachine.Status.TaskStatus {
+		case "SUCCESS":
+			machineScope.SetProviderID(task.Data.Result.WorkloadID)
+		case "FAILURE":
+			return fmt.Errorf("provisioning of workload failed")
+		default:
+			return errWorkloadDeploymentInProgress
+		}
+	} else {
+		machineScope.SetProviderID(workload.ID)
+	}
+	return nil
 }

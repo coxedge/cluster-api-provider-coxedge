@@ -39,7 +39,6 @@ import (
 	coxv1 "github.com/coxedge/cluster-api-provider-cox/api/v1beta1"
 	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge/scope"
-	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -104,7 +103,7 @@ func (r *CoxClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		DefaultCredentials: r.DefaultCredentials,
 	})
 	if err != nil {
-		return ctrl.Result{}, errors.Errorf("failed to create scope: %+v", err)
+		return ctrl.Result{}, fmt.Errorf("failed to create scope: %+v", err)
 	}
 
 	defer func() {
@@ -247,7 +246,7 @@ func (r *CoxClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))). // don't queue reconcile if resource is paused
 		Build(r)
 	if err != nil {
-		return errors.Wrapf(err, "error creating controller")
+		return fmt.Errorf("error creating controller: %w", err)
 	}
 
 	// Add a watch on clusterv1.Cluster object for unpause notifications.
@@ -256,7 +255,7 @@ func (r *CoxClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(coxv1.GroupVersion.WithKind("CoxCluster"))),
 		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 	); err != nil {
-		return errors.Wrapf(err, "failed adding a watch for ready clusters")
+		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}
 
 	return nil
