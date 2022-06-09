@@ -253,13 +253,21 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		return ctrl.Result{}, err
 	}
 	if len(instances.Data) == 0 {
-		logger.Info("Instance not ready yet.")
+		logger.Info("Instance not deployed yet.")
 		return ctrl.Result{
 			RequeueAfter: 1 * time.Minute,
 		}, nil
 	}
 	// For a CoxMachine we currently just assume 1 CAPI Machine == 1 Cox Workload == 1 Cox Instance
 	instance := instances.Data[0]
+
+	// It can happen that an instance is stuck in SCHEDULING for a longer time.
+	if instance.Status != "RUNNING" {
+		logger.Info("Instance not ready yet.")
+		return ctrl.Result{
+			RequeueAfter: 1 * time.Minute,
+		}, nil
+	}
 
 	machineScope.SetAddresses([]corev1.NodeAddress{
 		{
