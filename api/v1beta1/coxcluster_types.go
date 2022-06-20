@@ -52,6 +52,10 @@ type CoxClusterStatus struct {
 	// +optional
 	Ready bool `json:"ready"`
 
+	// Conditions defines current service state of the Machine.
+	// +optional
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+
 	// +optional
 	ControlPlaneLoadBalancer CoxLoadBalancerStatus `json:"controlPlaneLoadBalancer,omitempty"`
 }
@@ -94,6 +98,16 @@ type CoxLoadBalancerSpec struct {
 type CoxLoadBalancerStatus struct {
 	// +optional
 	PublicIP string `json:"publicIP"`
+}
+
+// GetConditions returns the set of conditions for this object.
+func (m *CoxCluster) GetConditions() clusterv1beta1.Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions sets the conditions on this object.
+func (m *CoxCluster) SetConditions(conditions clusterv1beta1.Conditions) {
+	m.Status.Conditions = conditions
 }
 
 func init() {

@@ -19,6 +19,7 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -121,6 +122,10 @@ type CoxMachineStatus struct {
 	Ready        bool    `json:"ready,omitempty"`
 	ErrorMessage *string `json:"errormessage,omitempty"`
 
+	// Conditions defines current service state of the Machine.
+	// +optional
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+
 	// Addresses contains the IP and/or DNS addresses of the CoxEdge instances.
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 }
@@ -148,6 +153,16 @@ type CoxMachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []CoxMachine `json:"items"`
+}
+
+// GetConditions returns the set of conditions for this object.
+func (m *CoxMachine) GetConditions() clusterv1beta1.Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions sets the conditions on this object.
+func (m *CoxMachine) SetConditions(conditions clusterv1beta1.Conditions) {
+	m.Status.Conditions = conditions
 }
 
 func init() {
