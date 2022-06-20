@@ -27,6 +27,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -48,6 +49,26 @@ import (
 var (
 	errWorkloadDeploymentInProgress = errors.New("machine deployment is still in progress")
 	errWorkloadDeploymentNotFound   = errors.New("machine deployment has not been started")
+)
+
+const (
+	CoxMachineReadyCondition clusterv1.ConditionType = "CoxMachineReady"
+	// ClusterNotFoundReason used when the machine is missing the cluster
+	ClusterNotFoundReason = "ClusterNotFound"
+	// ClusterInfrastructureNotReadyReason used when the InfrastractureReady status is false
+	ClusterInfrastructureNotReadyReason = "ClusterInfrastructureNotReady"
+	// BootstrapNotAvailableReason used when the Bootstrap data reference is not yet available
+	BootstrapNotAvailableReason = "BootstrapNotAvailable"
+	// BootstrapDataNotFoundReason used when MachineScope fails to get Bootstrap data
+	BootstrapDataNotFoundReason = "BootstrapDataNotFound"
+	// MachineErroredStateReason used when CoxMachine enters errored state
+	MachineErroredStateReason = "MachineErroredState"
+	// WorkloadCreateFailedReason used when CoxClient fails to create a Workload
+	WorkloadCreateFailedReason = "WorkloadCreateFailed"
+	// FailedWorkloadReconcileReason used when failing to set ProviderID and Workload failes to reconcile
+	FailedWorkloadReconcileReason = "FailedWorkloadReconcile"
+	// InstanceNotReady used when the instance is not ready yet
+	InstanceNotReady = "InstanceNotReady"
 )
 
 // CoxMachineReconciler reconciles a CoxMachine object
@@ -144,6 +165,7 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Reconciling CoxMachine")
 	coxMachine := machineScope.CoxMachine
+	conditions.MarkUnknown(coxMachine, CoxMachineReadyCondition, "", "")
 
 	// Add the finalizer to the CoxMachine if it does not exist yet.
 	controllerutil.AddFinalizer(coxMachine, coxv1.MachineFinalizer)
@@ -153,8 +175,10 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machineScope.Machine.ObjectMeta)
 		if err != nil {
 			logger.Info("Machine is missing cluster label or cluster does not exist")
+			conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, ClusterNotFoundReason, clusterv1.ConditionSeverityInfo, "Machine is missing cluster label or cluster does not exist")
 			return ctrl.Result{}, nil
 		}
+		conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, ClusterNotFoundReason, clusterv1.ConditionSeverityInfo, err.Error())
 		return reconcile.Result{}, apierrors.NewNotFound(
 			coxv1.GroupVersion.WithResource("coxclusters").GroupResource(),
 			cluster.Spec.InfrastructureRef.Name,
@@ -164,18 +188,21 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	// Make sure that the cluster infrastructure is ready.
 	if !machineScope.Cluster.Status.InfrastructureReady {
 		machineScope.Info("Cluster infrastructure is not ready yet")
+		conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, ClusterInfrastructureNotReadyReason, clusterv1.ConditionSeverityInfo, "Cluster infrastructure is not ready yet")
 		return reconcile.Result{}, nil
 	}
 
 	// Make sure that bootstrap data is available and populated.
 	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
 		machineScope.Info("Bootstrap data secret reference is not yet available")
+		conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, BootstrapNotAvailableReason, clusterv1.ConditionSeverityInfo, "Bootstrap data secret reference is not yet available")
 		return reconcile.Result{}, nil
 	}
 
 	// If the CoxMachine is in an error state, return early.
 	if coxMachine.Status.ErrorMessage != nil {
 		machineScope.Info("Error state detected, skipping reconciliation")
+		conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, MachineErroredStateReason, clusterv1.ConditionSeverityInfo, *coxMachine.Status.ErrorMessage)
 		return ctrl.Result{}, fmt.Errorf(*coxMachine.Status.ErrorMessage)
 	}
 
@@ -187,6 +214,7 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 			logger.Info("No CoxEdge workload found for this machine; creating it.")
 			bootstrapData, err := machineScope.GetRawBootstrapData()
 			if err != nil {
+				conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, BootstrapDataNotFoundReason, clusterv1.ConditionSeverityInfo, err.Error())
 				return ctrl.Result{}, fmt.Errorf("failed to get bootstrap data: %w", err)
 			}
 
@@ -225,6 +253,7 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 			resp, err := machineScope.CoxClient.CreateWorkload(data)
 			if err != nil {
+				conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, WorkloadCreateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
 				errResp := &coxedge.HTTPError{}
 				if errors.As(err, &errResp) {
 					jsn, _ := json.Marshal(errResp)
@@ -242,6 +271,7 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 				RequeueAfter: 1 * time.Minute,
 			}, nil
 		default:
+			conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, FailedWorkloadReconcileReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, fmt.Errorf("error while reconciling workload: %w", err)
 		}
 	}
@@ -250,10 +280,12 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	logger.Info("Checking the workload's instance status", "workloadID", workloadID)
 	instances, err := machineScope.CoxClient.GetInstances(workloadID)
 	if err != nil {
+		conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, InstanceNotReady, clusterv1.ConditionSeverityInfo, err.Error())
 		return ctrl.Result{}, err
 	}
 	if len(instances.Data) == 0 {
 		logger.Info("Instance not deployed yet.")
+		conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, InstanceNotReady, clusterv1.ConditionSeverityInfo, "Instance not deployed yet.")
 		return ctrl.Result{
 			RequeueAfter: 1 * time.Minute,
 		}, nil
@@ -279,6 +311,8 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 			Address: instance.IPAddress,
 		},
 	})
+
+	conditions.MarkTrue(machineScope.CoxMachine, CoxMachineReadyCondition)
 
 	machineScope.CoxMachine.Status.Ready = true
 	return ctrl.Result{

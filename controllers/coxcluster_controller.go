@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,6 +47,20 @@ const (
 	defaultKubeApiserverPort = 6443
 	defaultBackend           = "example.com:80"
 	defaultLoadBalancerImage = "erwinvaneyk/nginx-lb:latest"
+
+	CoxClusterReadyCondition clusterv1.ConditionType = "CoxClusterReady"
+	// LoadBalancerNotFoundReason used when LoadBalancerHelper can not find the LoadBalancer
+	LoadBalancerNotFoundReason = "LoadBalancerNotFound"
+	// LoadBalancerCreateFailedReason used when LoadBalancerHelper fails to create a LoadBalancer
+	LoadBalancerCreateFailedReason = "LoadBalancerCreateFailed"
+	// LoadBalancerUpdateFailed used when LoadBalancerHelper failes to update a LoadBalancer
+	LoadBalancerUpdateFailedReason = "LoadBalancerUpdateFailed"
+	// WaitingLoadBalancerReason used when waiting for the LoadBalancer to create
+	WaitingLoadBalancerReason = "WaitingLoadBalancer"
+	// LoadBalancerNotReadyReason used when the LoadBalancer is not ready yet
+	LoadBalancerNotReadyReason = "LoadBalancerNotReady"
+	// LoadBalancerBackendMissingReason used when the load balancer does not have a valid backend
+	LoadBalancerInvalidBackendReason = "LoadBalancerInvalidBackend"
 )
 
 // CoxClusterReconciler reconciles a CoxCluster object
@@ -123,6 +138,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	log := ctrl.LoggerFrom(ctx)
 	coxCluster := clusterScope.CoxCluster
 	controllerutil.AddFinalizer(coxCluster, coxv1.ClusterFinalizer)
+	conditions.MarkUnknown(coxCluster, CoxClusterReadyCondition, "", "")
 
 	// Hacky way to retrieve the control plane endpoints from the machines
 	var apiserverAddresses []string
@@ -173,13 +189,16 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
 	if err != nil {
 		if err != coxedge.ErrWorkloadNotFound {
+			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotFoundReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
 		err = lbClient.CreateLoadBalancer(ctx, &loadBalancerSpec)
 		if err != nil {
+			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
 		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
+		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, "Creating LoadBalancer deployment")
 		return ctrl.Result{Requeue: true}, nil
 	}
 	// Ignore the name of the existing one because it might have been shortened.
@@ -188,6 +207,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
 		err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
 		if err != nil {
+			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerUpdateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
 		log.Info("Updated LoadBalancer deployment", "old", existingLoadBalancer.Spec, "new", loadBalancerSpec)
@@ -195,6 +215,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 	if existingLoadBalancer != nil && len(existingLoadBalancer.Status.PublicIP) == 0 {
 		log.Info("LoadBalancer is not ready yet.")
+		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotReadyReason, clusterv1.ConditionSeverityInfo, "LoadBalancer is not ready yet")
 		return ctrl.Result{
 			RequeueAfter: 10 * time.Second,
 		}, nil
@@ -215,12 +236,14 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	// Hack: requeue as long as the load balancer does not yet have an appropriate backend.
 	if apiserverAddresses[0] == defaultBackend {
 		log.Info("LoadBalancer does not yet have a valid apiserver to use as backend.")
+		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerInvalidBackendReason, clusterv1.ConditionSeverityInfo, "LoadBalancer does not yet have a valid apiserver to use as backend.")
 		return ctrl.Result{
 			RequeueAfter: 10 * time.Second,
 		}, nil
 	}
 
 	log.Info("Cluster reconciled.")
+	conditions.MarkTrue(clusterScope.Cluster, CoxClusterReadyCondition)
 	return ctrl.Result{
 		// Requeue to make sure that the controller reconciles drift on the Cox Edge side.
 		RequeueAfter: 5 * time.Minute,
