@@ -4,13 +4,21 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/erwinvaneyk/cobras"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 )
+
+var workloadListValidOutputFormats = []string{
+	"table",
+	"wide",
+	"name",
+}
 
 type WorkloadListOptions struct {
 	*WorkloadOptions
@@ -20,6 +28,7 @@ type WorkloadListOptions struct {
 func NewCmdWorkloadList(workloadOpts *WorkloadOptions) *cobra.Command {
 	opts := &WorkloadListOptions{
 		WorkloadOptions: workloadOpts,
+		OutputFormat:    "table",
 	}
 
 	cmd := &cobra.Command{
@@ -28,7 +37,7 @@ func NewCmdWorkloadList(workloadOpts *WorkloadOptions) *cobra.Command {
 		Run:   cobras.Run(opts),
 	}
 
-	cmd.Flags().StringVarP(&opts.OutputFormat, "output", "o", opts.OutputFormat, "Output format. options: wide,name")
+	cmd.Flags().StringVarP(&opts.OutputFormat, "output", "o", opts.OutputFormat, "Output format. options: "+strings.Join(workloadListValidOutputFormats, ","))
 
 	return cmd
 }
@@ -38,6 +47,9 @@ func (o *WorkloadListOptions) Complete(cmd *cobra.Command, args []string) error 
 }
 
 func (o *WorkloadListOptions) Validate() error {
+	if !slices.Contains(workloadListValidOutputFormats, o.OutputFormat) {
+		return fmt.Errorf("unknown output format: %s", o.OutputFormat)
+	}
 	return nil
 }
 
@@ -61,7 +73,7 @@ func (o *WorkloadListOptions) Run(ctx context.Context) error {
 		}
 	case "wide":
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"ID", "NAME", "TYPE", "STATUS", "ANYCAST IP", "PUBLIC IP"})
+		table.SetHeader([]string{"ID", "NAME", "TYPE", "STATUS", "ANYCAST IP", "INSTANCE STATUS", "PUBLIC IP"})
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 		table.SetCenterSeparator("|")
 		table.SetAutoWrapText(false)
@@ -82,11 +94,12 @@ func (o *WorkloadListOptions) Run(ctx context.Context) error {
 				workload.Type,
 				workload.Status,
 				workload.AnycastIPAddress,
+				instance.Status,
 				instance.PublicIPAddress,
 			})
 		}
 		table.Render()
-	default:
+	case "table":
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "NAME", "TYPE", "STATUS", "ANYCAST IP"})
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
@@ -102,6 +115,8 @@ func (o *WorkloadListOptions) Run(ctx context.Context) error {
 			})
 		}
 		table.Render()
+	default:
+		return fmt.Errorf("unknown output format: %s", o.OutputFormat)
 	}
 	return nil
 }

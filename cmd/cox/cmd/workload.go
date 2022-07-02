@@ -21,6 +21,7 @@ func NewCmdWorkload(rootOptions *RootOptions) *cobra.Command {
 
 	cmd.AddCommand(NewCmdWorkloadList(opts))
 	cmd.AddCommand(NewCmdWorkloadDelete(opts))
+	cmd.AddCommand(NewCmdWorkloadInstance(opts))
 
 	return cmd
 }
