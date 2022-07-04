@@ -92,6 +92,7 @@ func main() {
 	if err = (&controllers.CoxClusterReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
+		Recorder:           mgr.GetEventRecorderFor(controllers.CoxClusterControllerName + "-controller"),
 		DefaultCredentials: defaultCredentials,
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoxCluster")
@@ -101,6 +102,7 @@ func main() {
 	if err = (&controllers.CoxMachineReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
+		Recorder:           mgr.GetEventRecorderFor(controllers.CoxMachineControllerName + "-controller"),
 		DefaultCredentials: defaultCredentials,
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoxMachine")

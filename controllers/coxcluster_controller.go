@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -63,11 +64,16 @@ const (
 	LoadBalancerInvalidBackendReason = "LoadBalancerInvalidBackend"
 )
 
+const (
+	CoxClusterControllerName = "CoxCluster"
+)
+
 // CoxClusterReconciler reconciles a CoxCluster object
 type CoxClusterReconciler struct {
 	client.Client
 	DefaultCredentials *scope.Credentials
 	Scheme             *runtime.Scheme
+	Recorder           record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
@@ -194,10 +200,12 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}
 		err = lbClient.CreateLoadBalancer(ctx, &loadBalancerSpec)
 		if err != nil {
+			r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatingLoadBalancerFailed", "Failed to create loadbalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID, err)
 			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
 		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
+		r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatedLoadBalancer", "Created LoadBalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID)
 		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, "Creating LoadBalancer deployment")
 		return ctrl.Result{Requeue: true}, nil
 	}
@@ -255,9 +263,10 @@ func (r *CoxClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	err := lbClient.DeleteLoadBalancer(ctx, loadBalancerName)
 	if err != nil {
+		r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletingLoadBalancerFailed", "Faield to delete loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.ClusterName, clusterScope.Cluster.UID, err)
 		return ctrl.Result{}, err
 	}
-
+	r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletedLoadBalancer", "Deleted loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.ClusterName, clusterScope.Cluster.UID)
 	controllerutil.RemoveFinalizer(clusterScope.CoxCluster, coxv1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }

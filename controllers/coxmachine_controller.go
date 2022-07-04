@@ -26,6 +26,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -52,6 +53,10 @@ var (
 )
 
 const (
+	CoxMachineControllerName = "CoxMachine"
+)
+
+const (
 	CoxMachineReadyCondition clusterv1.ConditionType = "CoxMachineReady"
 	// ClusterNotFoundReason used when the machine is missing the cluster
 	ClusterNotFoundReason = "ClusterNotFound"
@@ -75,6 +80,7 @@ const (
 type CoxMachineReconciler struct {
 	client.Client
 	Scheme             *runtime.Scheme
+	Recorder           record.EventRecorder
 	DefaultCredentials *scope.Credentials
 }
 
@@ -257,10 +263,14 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 				errResp := &coxedge.HTTPError{}
 				if errors.As(err, &errResp) {
 					jsn, _ := json.Marshal(errResp)
+					r.Recorder.Eventf(machineScope.CoxMachine, corev1.EventTypeNormal, "CreatingWorkloadFailed", "Faield to create machine '%s`:`%s`", machineScope.Machine.Name, machineScope.Machine.UID, string(jsn))
 					return ctrl.Result{}, fmt.Errorf("error occurred while creating workload: %v - response: %v", err, string(jsn))
 				}
+				r.Recorder.Eventf(machineScope.CoxMachine, corev1.EventTypeNormal, "CreatingWorkloadFailed", "Failed to create workflow for machine '%s`:`%s`", machineScope.Machine.Name, machineScope.Machine.UID, err.Error())
 				return ctrl.Result{}, fmt.Errorf("error occurred while creating workload: %w", err)
 			}
+
+			r.Recorder.Eventf(machineScope.CoxMachine, corev1.EventTypeNormal, "CreatedWorkload", "Created workload for machine '%s`:`%s`", machineScope.Machine.Name, machineScope.Machine.UID)
 
 			// Since the workload has just been created we have to requeue and poll for provisioning status with task ID
 			machineScope.CoxMachine.Status.TaskID = resp.TaskID
@@ -357,9 +367,11 @@ func (r *CoxMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 	logger.Info("Deleting the machine", "workloadID", workloadID)
 	_, err = machineScope.CoxClient.DeleteWorkload(workloadID)
 	if err != nil {
+		r.Recorder.Eventf(machineScope.CoxMachine, corev1.EventTypeNormal, "DeletingWorkloadFailed", "Failed to delete Machine '%s", machineScope.Machine.Name)
 		return ctrl.Result{}, fmt.Errorf("failed to delete the machine: %v", err)
 	}
 
+	r.Recorder.Eventf(machineScope.CoxMachine, corev1.EventTypeNormal, "DeletedWorkload", "Deleted Machine '%s`:`%s`", machineScope.Machine.Name, machineScope.Machine.UID)
 	controllerutil.RemoveFinalizer(machineScope.CoxMachine, coxv1.MachineFinalizer)
 
 	return ctrl.Result{}, nil
