@@ -65,7 +65,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		if err != nil {
 			return nil, err
 		}
-	} else if params.DefaultCredentials != nil {
+	} else if !params.DefaultCredentials.IsEmpty() {
 		creds = params.DefaultCredentials
 	} else {
 		return nil, errors.New("no default or cluster-specific credentials provided")

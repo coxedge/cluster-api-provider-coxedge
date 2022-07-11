@@ -24,6 +24,10 @@ type Credentials struct {
 	CoxService     string
 }
 
+func (c *Credentials) IsEmpty() bool {
+	return c == nil || (len(c.CoxAPIKey) == 0 && len(c.CoxEnvironment) == 0 && len(c.CoxService) == 0)
+}
+
 func GetCredentials(client client.Client, namespace string, name string) (*Credentials, error) {
 	tokenSecret := &corev1.Secret{}
 	coxSecretName := types.NamespacedName{Namespace: namespace, Name: name}
