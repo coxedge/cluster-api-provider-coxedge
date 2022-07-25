@@ -54,14 +54,16 @@ const (
 	LoadBalancerNotFoundReason = "LoadBalancerNotFound"
 	// LoadBalancerCreateFailedReason used when LoadBalancerHelper fails to create a LoadBalancer
 	LoadBalancerCreateFailedReason = "LoadBalancerCreateFailed"
-	// LoadBalancerUpdateFailed used when LoadBalancerHelper failes to update a LoadBalancer
+	// LoadBalancerUpdateFailedReason used when LoadBalancerHelper failed to update a LoadBalancer
 	LoadBalancerUpdateFailedReason = "LoadBalancerUpdateFailed"
 	// WaitingLoadBalancerReason used when waiting for the LoadBalancer to create
 	WaitingLoadBalancerReason = "WaitingLoadBalancer"
 	// LoadBalancerNotReadyReason used when the LoadBalancer is not ready yet
 	LoadBalancerNotReadyReason = "LoadBalancerNotReady"
-	// LoadBalancerBackendMissingReason used when the load balancer does not have a valid backend
+	// LoadBalancerInvalidBackendReason used when the load balancer does not have a valid backend
 	LoadBalancerInvalidBackendReason = "LoadBalancerInvalidBackend"
+	// MachineListFailedReason indicates that the controller could not list the machines
+	MachineListFailedReason = "MachineListFailed"
 )
 
 const (
@@ -151,6 +153,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	coxMachines := &coxv1.CoxMachineList{}
 	err := r.Client.List(ctx, coxMachines)
 	if err != nil {
+		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, MachineListFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
 		return ctrl.Result{}, err
 	}
 	for _, coxMachine := range coxMachines.Items {
