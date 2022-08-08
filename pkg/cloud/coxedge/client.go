@@ -22,14 +22,15 @@ var (
 )
 
 type Client struct {
-	client      *http.Client
-	apiKey      string
-	baseURL     *url.URL
-	service     string
-	environment string
+	client         *http.Client
+	apiKey         string
+	baseURL        *url.URL
+	service        string
+	environment    string
+	organisationID string
 }
 
-func NewClient(service, environment, apiKey string, httpClient *http.Client) (*Client, error) {
+func NewClient(service, environment, apiKey string, httpClient *http.Client, organisationID ...string) (*Client, error) {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -44,6 +45,13 @@ func NewClient(service, environment, apiKey string, httpClient *http.Client) (*C
 		client:  httpClient,
 	}
 
+	if len(organisationID) > 0 {
+		// Setting it to '?id' so we can just append it to the end of the url
+		client.organisationID = "?" + organisationID[0]
+	} else {
+		client.organisationID = ""
+	}
+
 	client.service = service
 	client.environment = environment
 
@@ -53,7 +61,7 @@ func NewClient(service, environment, apiKey string, httpClient *http.Client) (*C
 // curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads/549ec584-c62b-4647-9ca0-f04f9a88403d'
 func (c *Client) GetWorkload(id string) (*Workload, error) {
 	w := &Workload{}
-	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, id), nil, w)
+	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads/%s%s", c.service, c.environment, id, c.organisationID), nil, w)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +86,7 @@ func (c *Client) GetWorkloadByName(name string) (*WorkloadData, error) {
 // curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/workloads'
 func (c *Client) GetWorkloads() (*Workloads, error) {
 	w := &Workloads{}
-	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads", c.service, c.environment), nil, w)
+	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/workloads%s", c.service, c.environment, c.organisationID), nil, w)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +96,13 @@ func (c *Client) GetWorkloads() (*Workloads, error) {
 // curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/instances?workloadId=5e1eb085-e9b3-447b-8a0e-c0147fc0ea4d' | jq
 func (c *Client) GetInstances(workloadID string) (*Instances, error) {
 	i := &Instances{}
-	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances?workloadId=%s", c.service, c.environment, workloadID), nil, i)
+	var params string
+	if c.organisationID != "" {
+		params = fmt.Sprintf("%s&workloadId=%s", c.organisationID, workloadID)
+	} else {
+		params = fmt.Sprintf("?workloadId=%s", workloadID)
+	}
+	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances%s", c.service, c.environment, params), nil, i)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +112,7 @@ func (c *Client) GetInstances(workloadID string) (*Instances, error) {
 // curl -X 'GET' -H 'Mc-Api-Key: $TOKEN' 'https://portal.coxedge.com/api/v1/services/edge-services/faefawef/instances/5e1eb085-e9b3-447b-8a0e-c0147fc0ea4d/capi-test-jg90-wi-peter-qhl-waw-0' | jq
 func (c *Client) GetInstance(instanceID string) (*Instance, error) {
 	i := &Instance{}
-	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances/%s", c.service, c.environment, instanceID), nil, i)
+	err := c.DoRequest("GET", fmt.Sprintf("/services/%s/%s/instances/%s%s", c.service, c.environment, instanceID, c.organisationID), nil, i)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +121,7 @@ func (c *Client) GetInstance(instanceID string) (*Instance, error) {
 
 func (c *Client) GetTask(taskID string) (*Task, error) {
 	t := &Task{}
-	err := c.DoRequest("GET", fmt.Sprintf("/tasks/%s", taskID), nil, t)
+	err := c.DoRequest("GET", fmt.Sprintf("/tasks/%s%s", taskID, c.organisationID), nil, t)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +149,7 @@ func (c *Client) CreateWorkload(data *CreateWorkloadRequest) (*POSTResponse, err
 	pr := &POSTResponse{}
 	data.Name = shortenName(data.Name, 18)
 
-	err := c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads", c.service, c.environment), data, pr)
+	err := c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads%s", c.service, c.environment, c.organisationID), data, pr)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +164,15 @@ func (c *Client) DeleteWorkload(workloadID string) (*POSTResponse, error) {
 		return nil, err
 	}
 
-	err = c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads/%s?operation=delete", c.service, c.environment, workloadID), wl.Data, pr)
+	var params string
+
+	if c.organisationID != "" {
+		params = fmt.Sprintf("%s&operation=delete", c.organisationID)
+	} else {
+		params = "?operation=delete"
+	}
+
+	err = c.DoRequest("POST", fmt.Sprintf("/services/%s/%s/workloads/%s%s", c.service, c.environment, workloadID, params), wl.Data, pr)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +184,7 @@ func (c *Client) UpdateWorkload(workloadID string, workload WorkloadData) (*POST
 	pr := &POSTResponse{}
 	workload.Name = shortenName(workload.Name, 18)
 
-	err := c.DoRequest("PUT", fmt.Sprintf("/services/%s/%s/workloads/%s", c.service, c.environment, workloadID), workload, pr)
+	err := c.DoRequest("PUT", fmt.Sprintf("/services/%s/%s/workloads/%s%s", c.service, c.environment, workloadID, c.organisationID), workload, pr)
 	if err != nil {
 		return nil, err
 	}
