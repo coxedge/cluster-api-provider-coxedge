@@ -71,7 +71,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.New("no default or cluster-specific credentials provided")
 	}
 
-	coxClient, err := coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxAPIKey, nil)
+	coxClient, err := coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxAPIKey, creds.CoxOrganization, nil)
 	if err != nil {
 		return nil, errors.Errorf("error while trying to create instance of coxedge client %s", err.Error())
 	}

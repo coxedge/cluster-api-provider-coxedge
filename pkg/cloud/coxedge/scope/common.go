@@ -13,15 +13,17 @@ import (
 )
 
 const (
-	EnvCoxAPIKey      = "COX_API_KEY"
-	EnvCoxService     = "COX_SERVICE"
-	EnvCoxEnvironment = "COX_ENVIRONMENT"
+	EnvCoxAPIKey       = "COX_API_KEY"
+	EnvCoxService      = "COX_SERVICE"
+	EnvCoxEnvironment  = "COX_ENVIRONMENT"
+	EnvCoxOrganization = "COX_ORGANIZATION"
 )
 
 type Credentials struct {
-	CoxAPIKey      string
-	CoxEnvironment string
-	CoxService     string
+	CoxAPIKey       string
+	CoxEnvironment  string
+	CoxService      string
+	CoxOrganization string
 }
 
 func (c *Credentials) IsEmpty() bool {
@@ -50,10 +52,13 @@ func GetCredentials(client client.Client, namespace string, name string) (*Crede
 		return nil, errors.Errorf("error key %s does not exist in secret/%s", coxedge.CoxService, coxSecretName)
 	}
 
+	coxOrganization, _ := tokenSecret.Data[coxedge.CoxOrganization]
+
 	return &Credentials{
-		CoxAPIKey:      string(CoxAPIKey),
-		CoxEnvironment: string(coxEnvironment),
-		CoxService:     string(coxService),
+		CoxAPIKey:       string(CoxAPIKey),
+		CoxEnvironment:  string(coxEnvironment),
+		CoxService:      string(coxService),
+		CoxOrganization: string(coxOrganization),
 	}, nil
 }
 
@@ -73,9 +78,15 @@ func ParseFromEnv() (*Credentials, error) {
 		return nil, errors.Errorf("key '%s' does not exist in env", EnvCoxService)
 	}
 
+	coxOrganization, keyExists := os.LookupEnv(EnvCoxOrganization)
+	if !keyExists {
+		coxOrganization = ""
+	}
+
 	return &Credentials{
-		CoxAPIKey:      CoxAPIKey,
-		CoxEnvironment: coxEnvironment,
-		CoxService:     coxService,
+		CoxAPIKey:       CoxAPIKey,
+		CoxEnvironment:  coxEnvironment,
+		CoxService:      coxService,
+		CoxOrganization: coxOrganization,
 	}, nil
 }
