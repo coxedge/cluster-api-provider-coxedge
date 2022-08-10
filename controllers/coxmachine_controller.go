@@ -263,7 +263,7 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 				errResp := &coxedge.HTTPError{}
 				if errors.As(err, &errResp) {
 					jsn, _ := json.Marshal(errResp)
-					r.Recorder.Eventf(machineScope.CoxMachine, corev1.EventTypeNormal, "CreatingWorkloadFailed", "Faield to create machine '%s`:`%s`", machineScope.Machine.Name, machineScope.Machine.UID, string(jsn))
+					r.Recorder.Eventf(machineScope.CoxMachine, corev1.EventTypeNormal, "CreatingWorkloadFailed", "Failed to create machine '%s`:`%s`", machineScope.Machine.Name, machineScope.Machine.UID, string(jsn))
 					return ctrl.Result{}, fmt.Errorf("error occurred while creating workload: %v - response: %v", err, string(jsn))
 				}
 				r.Recorder.Eventf(machineScope.CoxMachine, corev1.EventTypeNormal, "CreatingWorkloadFailed", "Failed to create workflow for machine '%s`:`%s`", machineScope.Machine.Name, machineScope.Machine.UID, err.Error())
