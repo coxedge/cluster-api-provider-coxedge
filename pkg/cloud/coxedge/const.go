@@ -19,4 +19,5 @@ const (
 	CoxEnvironment  = "COX_ENVIRONMENT"
 	CoxService      = "COX_SERVICE"
 	CoxOrganization = "COX_ORGANIZATION"
+	CoxAPIBaseURL = "COX_APIBASEURL"
 )

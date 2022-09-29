@@ -1,0 +1,540 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  labels:
+    cluster.x-k8s.io/v1alpha3: v1alpha3
+    cluster.x-k8s.io/v1alpha4: v1alpha4
+    cluster.x-k8s.io/v1beta1: v1beta1
+    control-plane: capmaas-controller-manager
+  name: coxclusters.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: CoxCluster
+    listKind: CoxClusterList
+    plural: coxclusters
+    singular: coxcluster
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Cluster to which this CoxCluster belongs
+      jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      name: Cluster
+      type: string
+    - description: Cluster Credentials
+      jsonPath: .spec.credentials.name
+      name: Credentials
+      type: string
+    - description: API Endpoint
+      jsonPath: .spec.controlPlaneEndpoint
+      name: Endpoint
+      type: string
+    - description: Cluster infrastructure is ready for Cox instances
+      jsonPath: .status.ready
+      name: Ready
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: CoxCluster is the Schema for the coxclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CoxClusterSpec defines the desired state of CoxCluster
+            properties:
+              controlPlaneEndpoint:
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    format: int32
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
+              controlPlaneLoadBalancer:
+                description: ControlPlaneLoadBalancer is optional configuration for
+                  customizing control plane behavior.
+                properties:
+                  image:
+                    type: string
+                  name:
+                    type: string
+                  port:
+                    format: int32
+                    type: integer
+                type: object
+              credentials:
+                description: Credentials is a reference to an identity to be used
+                  when reconciling this cluster.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+            type: object
+          status:
+            description: CoxClusterStatus defines the observed state of CoxCluster
+            properties:
+              conditions:
+                description: Conditions defines current service state of the Machine.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another. This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field
+                        changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition
+                        in CamelCase. The specific API may choose whether or not this
+                        field is considered a guaranteed API. This field may not be
+                        empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of
+                        Reason code, so the users or machines can immediately understand
+                        the current situation and act accordingly. The Severity field
+                        MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              controlPlaneLoadBalancer:
+                properties:
+                  publicIP:
+                    type: string
+                type: object
+              ready:
+                description: Ready denotes that the cluster is ready.
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  labels:
+    cluster.x-k8s.io/v1alpha3: v1alpha3
+    cluster.x-k8s.io/v1alpha4: v1alpha4
+    cluster.x-k8s.io/v1beta1: v1beta1
+    control-plane: capmaas-controller-manager
+  name: coxmachines.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: CoxMachine
+    listKind: CoxMachineList
+    plural: coxmachines
+    singular: coxmachine
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Cluster to which this CoxMachine belongs
+      jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      name: Cluster
+      type: string
+    - description: Machine object which owns with this CoxMachine
+      jsonPath: .metadata.ownerReferences[?(@.kind=="Machine")].name
+      name: Machine
+      type: string
+    - description: CoxEdge workload ID
+      jsonPath: .spec.providerID
+      name: WorkloadID
+      type: string
+    - description: Machine ready status
+      jsonPath: .status.ready
+      name: Ready
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: CoxMachine is the Schema for the coxmachines API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CoxMachineSpec defines the desired state of CoxMachine
+            properties:
+              addAnycastIPAddress:
+                description: AddAnyCastIPAddress enables the AnyCast IP Address feature.
+                type: boolean
+              deployments:
+                description: Deployment targets
+                items:
+                  description: Deployment defines instance specifications
+                  properties:
+                    cpuUtilization:
+                      type: integer
+                    enableAutoScaling:
+                      type: boolean
+                    instancesPerPop:
+                      description: number of instances per each PoP defined
+                      type: string
+                    maxInstancesPerPop:
+                      type: integer
+                    minInstancesPerPop:
+                      type: integer
+                    name:
+                      description: Name of the deployment instance
+                      type: string
+                    pops:
+                      description: CoxEdge PoPs - geographical location for the instance
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              image:
+                description: Image is a reference to the OS image that should be used
+                  to provision the VM.
+                type: string
+              persistentStorages:
+                description: PersistentStorages mount storage volumes to your workload
+                  instances.
+                items:
+                  description: PersistentStorage defines instances' mounted persistent
+                    storage options
+                  properties:
+                    path:
+                      type: string
+                    size:
+                      type: string
+                  required:
+                  - path
+                  - size
+                  type: object
+                type: array
+              ports:
+                description: Expose any ports required by your workload instances
+                items:
+                  description: Port defines instance network policies
+                  properties:
+                    protocol:
+                      type: string
+                    publicPort:
+                      type: string
+                    publicPortDesc:
+                      type: string
+                  required:
+                  - protocol
+                  - publicPort
+                  type: object
+                type: array
+              providerID:
+                description: ProviderID is the unique identifier as specified by the
+                  cloud provider.
+                type: string
+              specs:
+                description: Specs contains the flavor of the machine. For example,
+                  SP-5.
+                type: string
+              sshAuthorizedKeys:
+                description: SSHAuthorizedKeys contains the public SSH keys that should
+                  be added to the machine on first boot. In the CoxEdge API this field
+                  is equivalent to `firstBootSSHKey`.
+                items:
+                  type: string
+                type: array
+            type: object
+          status:
+            description: CoxMachineStatus defines the observed state of CoxMachine
+            properties:
+              addresses:
+                description: Addresses contains the IP and/or DNS addresses of the
+                  CoxEdge instances.
+                items:
+                  description: NodeAddress contains information for the node's address.
+                  properties:
+                    address:
+                      description: The node address.
+                      type: string
+                    type:
+                      description: Node address type, one of Hostname, ExternalIP
+                        or InternalIP.
+                      type: string
+                  required:
+                  - address
+                  - type
+                  type: object
+                type: array
+              conditions:
+                description: Conditions defines current service state of the Machine.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another. This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field
+                        changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition
+                        in CamelCase. The specific API may choose whether or not this
+                        field is considered a guaranteed API. This field may not be
+                        empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of
+                        Reason code, so the users or machines can immediately understand
+                        the current situation and act accordingly. The Severity field
+                        MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              errormessage:
+                type: string
+              ready:
+                type: boolean
+              taskID:
+                type: string
+              taskStatus:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  labels:
+    cluster.x-k8s.io/v1alpha3: v1alpha3
+    cluster.x-k8s.io/v1alpha4: v1alpha4
+    cluster.x-k8s.io/v1beta1: v1beta1
+    control-plane: capmaas-controller-manager
+  name: coxmachinetemplates.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: CoxMachineTemplate
+    listKind: CoxMachineTemplateList
+    plural: coxmachinetemplates
+    singular: coxmachinetemplate
+  scope: Namespaced
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: CoxMachineTemplate is the Schema for the coxmachinetemplates
+          API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CoxMachineTemplateSpec defines the desired state of CoxMachineTemplate.
+            properties:
+              template:
+                description: CoxMachineTemplateResource describes the data needed
+                  to create am CoxMachine from a template.
+                properties:
+                  spec:
+                    description: Spec is the specification of the desired behavior
+                      of the machine.
+                    properties:
+                      addAnycastIPAddress:
+                        description: AddAnyCastIPAddress enables the AnyCast IP Address
+                          feature.
+                        type: boolean
+                      deployments:
+                        description: Deployment targets
+                        items:
+                          description: Deployment defines instance specifications
+                          properties:
+                            cpuUtilization:
+                              type: integer
+                            enableAutoScaling:
+                              type: boolean
+                            instancesPerPop:
+                              description: number of instances per each PoP defined
+                              type: string
+                            maxInstancesPerPop:
+                              type: integer
+                            minInstancesPerPop:
+                              type: integer
+                            name:
+                              description: Name of the deployment instance
+                              type: string
+                            pops:
+                              description: CoxEdge PoPs - geographical location for
+                                the instance
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        type: array
+                      image:
+                        description: Image is a reference to the OS image that should
+                          be used to provision the VM.
+                        type: string
+                      persistentStorages:
+                        description: PersistentStorages mount storage volumes to your
+                          workload instances.
+                        items:
+                          description: PersistentStorage defines instances' mounted
+                            persistent storage options
+                          properties:
+                            path:
+                              type: string
+                            size:
+                              type: string
+                          required:
+                          - path
+                          - size
+                          type: object
+                        type: array
+                      ports:
+                        description: Expose any ports required by your workload instances
+                        items:
+                          description: Port defines instance network policies
+                          properties:
+                            protocol:
+                              type: string
+                            publicPort:
+                              type: string
+                            publicPortDesc:
+                              type: string
+                          required:
+                          - protocol
+                          - publicPort
+                          type: object
+                        type: array
+                      providerID:
+                        description: ProviderID is the unique identifier as specified
+                          by the cloud provider.
+                        type: string
+                      specs:
+                        description: Specs contains the flavor of the machine. For
+                          example, SP-5.
+                        type: string
+                      sshAuthorizedKeys:
+                        description: SSHAuthorizedKeys contains the public SSH keys
+                          that should be added to the machine on first boot. In the
+                          CoxEdge API this field is equivalent to `firstBootSSHKey`.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                required:
+                - spec
+                type: object
+            required:
+            - template
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

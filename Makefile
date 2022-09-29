@@ -4,8 +4,8 @@ MAKE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MAKE_DIR := $(shell dirname $(MAKE_PATH))
 
 # Image URL to use all building/pushing image targets
-REGISTRY ?= docker.io/coxedge
-IMAGE_NAME ?= cluster-api-cox-controller
+REGISTRY ?= gcr.io/spectro-dev-public/deepak
+IMAGE_NAME ?= cluster-api-cox-controller:spectro-v0.0.3-20220828
 IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
@@ -233,3 +233,10 @@ kind-deploy: docker-build kind-kubeconfig ## Build and deploy an image into a lo
 	$(MAKE) deploy KUBECONFIG=$(KIND_KUBECONFIG_PATH) IMG=$(KIND_IMG)
 	# Recreate the pods to ensure that the newer image is used
 	kubectl --kubeconfig=$(KIND_KUBECONFIG_PATH) -n $(KIND_CONTROLLER_NAMESPACE) delete pod --all || true
+
+
+dsetup:
+	kind create cluster
+	clusterctl init
+	kubectl apply -f build/releases/infrastructure-cox/latest/infrastructure-components.yaml
+	kubectl apply -f ~/cox-edge.yaml

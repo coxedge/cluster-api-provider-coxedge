@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"strings"
 	"time"
 
@@ -82,6 +83,7 @@ type CoxMachineReconciler struct {
 	Scheme             *runtime.Scheme
 	Recorder           record.EventRecorder
 	DefaultCredentials *scope.Credentials
+	Tracker            *remote.ClusterCacheTracker
 }
 
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
@@ -148,6 +150,7 @@ func (r *CoxMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		CoxCluster:         coxCluster,
 		Machine:            machine,
 		DefaultCredentials: r.DefaultCredentials,
+		Tracker:            r.Tracker,
 	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create scope: %w", err)
@@ -323,6 +326,11 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	})
 
 	conditions.MarkTrue(machineScope.CoxMachine, CoxMachineReadyCondition)
+
+	err = machineScope.SetNodeProviderID()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	machineScope.CoxMachine.Status.Ready = true
 	return ctrl.Result{

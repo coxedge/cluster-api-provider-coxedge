@@ -19,7 +19,7 @@ func init() {
 		skip = true
 	}
 
-	c, _ = NewClient(os.Getenv("COXEDGE_SERVICE"), os.Getenv("COXEDGE_ENVIRONMENT"), os.Getenv("COXEDGE_TOKEN"), os.Getenv("COXEDGE_ORGANIZATION"), nil)
+	c, _ = NewClient(os.Getenv("COX_APIBASEURL"), os.Getenv("COXEDGE_SERVICE"), os.Getenv("COXEDGE_ENVIRONMENT"), os.Getenv("COXEDGE_TOKEN"), os.Getenv("COXEDGE_ORGANIZATION"), nil)
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")

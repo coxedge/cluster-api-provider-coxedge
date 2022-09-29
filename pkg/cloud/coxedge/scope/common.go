@@ -24,6 +24,7 @@ type Credentials struct {
 	CoxEnvironment  string
 	CoxService      string
 	CoxOrganization string
+	CoxAPIBaseURL	string
 }
 
 func (c *Credentials) IsEmpty() bool {
@@ -54,11 +55,14 @@ func GetCredentials(client client.Client, namespace string, name string) (*Crede
 
 	coxOrganization, _ := tokenSecret.Data[coxedge.CoxOrganization]
 
+	coxAPIBaseURL, _ := tokenSecret.Data[coxedge.CoxAPIBaseURL]
+
 	return &Credentials{
 		CoxAPIKey:       string(CoxAPIKey),
 		CoxEnvironment:  string(coxEnvironment),
 		CoxService:      string(coxService),
 		CoxOrganization: string(coxOrganization),
+		CoxAPIBaseURL: string(coxAPIBaseURL),
 	}, nil
 }
 
