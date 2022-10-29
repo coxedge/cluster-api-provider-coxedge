@@ -18,8 +18,6 @@ package scope
 
 import (
 	"context"
-	"fmt"
-
 	coxv1 "github.com/coxedge/cluster-api-provider-cox/api/v1beta1"
 	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/go-logr/logr"
@@ -69,8 +67,6 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	} else {
 		return nil, errors.New("no default or cluster-specific credentials provided")
 	}
-
-	fmt.Println("got creds", *creds)
 
 	coxClient, err := coxedge.NewClient(creds.CoxAPIBaseURL, creds.CoxService, creds.CoxEnvironment, creds.CoxAPIKey, creds.CoxOrganization, nil)
 	if err != nil {

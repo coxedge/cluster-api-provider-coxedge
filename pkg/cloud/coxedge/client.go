@@ -39,6 +39,10 @@ func NewClient(baseURL, service, environment, apiKey string, organizationID stri
 		baseURL = baseURLDefault
 	}
 
+	if !strings.HasSuffix(baseURL, "/") {
+		baseURL += "/"
+	}
+
 	url, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
