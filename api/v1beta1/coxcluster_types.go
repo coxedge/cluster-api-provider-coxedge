@@ -94,6 +94,9 @@ type CoxLoadBalancerSpec struct {
 
 	// +optional
 	Port int32 `json:"port,omitempty"`
+
+	// POP for instance
+	POP []string `json:"pop,omitempty"`
 }
 
 type CoxLoadBalancerStatus struct {

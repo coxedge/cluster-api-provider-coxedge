@@ -194,6 +194,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		Image:    loadBalancerImage,
 		Port:     fmt.Sprintf("%d", clusterPort),
 		Backends: apiserverAddresses,
+		POP:      clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
 	}
 	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
 	if err != nil {

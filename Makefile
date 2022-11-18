@@ -5,7 +5,7 @@ MAKE_DIR := $(shell dirname $(MAKE_PATH))
 
 # Image URL to use all building/pushing image targets
 REGISTRY ?= gcr.io/spectro-dev-public/deepak
-IMAGE_NAME ?= cluster-api-cox-controller:spectro-v0.0.3-20220828
+IMAGE_NAME ?= cluster-api-cox-controller:spectro-v0.0.3-20221117
 IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
