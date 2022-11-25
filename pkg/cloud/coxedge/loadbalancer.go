@@ -24,6 +24,7 @@ type LoadBalancerSpec struct {
 	Port     string
 	Image    string
 	Backends []string
+	POP      []string
 }
 
 type LoadBalancerStatus struct {
@@ -77,10 +78,8 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 		},
 		Deployments: []Deployment{
 			{
-				Name: "default",
-				Pops: []string{
-					PopLasVegas,
-				},
+				Name:            "default",
+				Pops:            payload.POP,
 				InstancesPerPop: "1",
 			},
 		},
@@ -197,5 +196,6 @@ func parseLoadBalancerSpecFromWorkload(workload *WorkloadData) (*LoadBalancerSpe
 		Port:     port,
 		Image:    workload.Image,
 		Backends: backends,
+		POP:      workload.Deployments[0].Pops,
 	}, nil
 }
