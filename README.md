@@ -29,27 +29,34 @@ present in `KUBECONFIG` unless configured otherwise. To deploy:
 clusterctl init
 ```
 
-Ensure that the Cox provider has the required credentials, create a ConfigMap with following fields:
-
-Create a file named `coxedge-config.yaml
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: coxedge
-  namespace: capc-system
-stringData:
-  COX_API_KEY: <COX_API_KEY>
-  COX_SERVICE: <COX_SERVICE>
-  COX_ENVIRONMENT: <COX_ENVIRONMENT>
-```
-
-Apply the config to the target cluster:
-```shell
-kubectl apply -f ./coxedge-config.yaml
-```
+### release version
 
 To deploy the provider with clusterctl:
 ```shell
 clusterctl init --infrastructure cox
+```
+
+### dev version
+
+#### Building Image 
+Change `REGISTRY` `IMAGE_NAME` according to your setup
+```shell
+make docker-build && make docker-push
+```
+
+To deploy the provider with clusterctl:
+```shell
+clusterctl init --infrastructure cox-local
+```
+
+Or you can run 
+```shell
+make release-manifests-clusterctl
+
+kubectl apply -f build/releases/infrastructure-cox/latest/infrastructure-components.yaml
+```
+
+### Sample Cluster Creation
+```shell
+kubectl apply -f examples/coxcluster.yaml
 ```
