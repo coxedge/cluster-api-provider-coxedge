@@ -4,66 +4,52 @@
 
 Kubernetes-native declarative infrastructure for [Cox Edge](https://www.coxedge.com).
 
+## What is the Cluster API Provider Cox Edge
+
+The [Cluster API][https://github.com/kubernetes-sigs/cluster-api] brings declarative, Kubernetes-style APIs to cluster creation, configuration and
+management. The API itself is shared across multiple cloud providers allowing for true Cox Edge
+hybrid deployments of Kubernetes. 
+
+## Compatibility with Cluster API
+
+This provider's versions are compatible with the following versions of Cluster API:
+
+|  | Cluster API `v1beta1` (`v1.0.x`) |
+|---|---|---|---|
+|Cox Edge Provider `v0.4.x` | ✓ |
+
 ## Installation
 
-Before you can deploy the infrastructure controller, you’ll need to configure 
-and deploy Cluster API itself.
+### For Development
 
-First, you will need to update your `clusterctl` config to be able to discover 
-the provider, which is located by default `~/.cluster-api/clusterctl.yaml`.
-
-```yaml
-providers:
-  # Add the cox infrastructure provider to the clusterctl config for discovery
-  - name: cox
-    type: InfrastructureProvider
-    url: https://github.com/coxedge/cluster-api-provider-coxedge/releases/latest/
-  # or, use a local provider (replace the `/path/to` with the path to this repository).
-  - name: cox-local
-    type: InfrastructureProvider
-    url: /path/to/cluster-api-provider-cox/build/release/infrastructure-cox/latest/infrastructure-components.yaml
+#### Creating a kind cluster
+```shell
+kiind create cluster
 ```
 
-Then, deploy the core components of Cluster API. Clusterctl uses the kubeconfig
-present in `KUBECONFIG` unless configured otherwise. To deploy:
-
+#### Deploying the core components of Cluster API
 ```shell
 clusterctl init
 ```
 
-### release version
-
-To deploy the provider with clusterctl:
-```shell
-clusterctl init --infrastructure cox
-```
-
-### dev version
-
 #### Building Image 
-Change `REGISTRY` `IMAGE_NAME` according to your setup
+Change `REGISTRY` and `IMAGE_NAME` according to your setup
 ```shell
 make docker-build && make docker-push
 ```
 
-To deploy the provider with clusterctl:
-```shell
-clusterctl init --infrastructure cox-local
-```
-
-Or you can run 
+#### Cluster creation
 ```shell
 make release-manifests-clusterctl
 
 kubectl apply -f build/releases/infrastructure-cox/latest/infrastructure-components.yaml
-```
 
-### Sample Cluster Creation
-```shell
 kubectl apply -f examples/coxcluster.yaml
 ```
+### NOTE
+Please Note that the coxcluster.yaml file must have your required credentials.
 
-
-### Describe your cluster
-clusterctl describe cluster jayesh-cox-cluster
-
+#### Getting cluster info
+```shell
+clusterctl describe cluster <cluster_name>
+```
