@@ -72,16 +72,16 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 
-	flag.DurationVar(&leaderElectionLeaseDuration, "leader-elect-lease-duration", 150*time.Second,
+	flag.DurationVar(&leaderElectionLeaseDuration, "leader-elect-lease-duration", 15*time.Second,
 		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)")
 
-	flag.DurationVar(&leaderElectionRenewDeadline, "leader-elect-renew-deadline", 100*time.Second,
+	flag.DurationVar(&leaderElectionRenewDeadline, "leader-elect-renew-deadline", 10*time.Second,
 		"Duration that the leading controller manager will retry refreshing leadership before giving up (duration string)")
 
-	flag.DurationVar(&leaderElectionRetryPeriod, "leader-elect-retry-period", 20*time.Second,
+	flag.DurationVar(&leaderElectionRetryPeriod, "leader-elect-retry-period", 2*time.Second,
 		"Duration the LeaderElector clients should wait between tries of actions (duration string)")
 
-	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
+	flag.DurationVar(&syncPeriod, "sync-period", 2*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
 	flag.StringVar(&watchNamespace, "namespace", "", "namespace")

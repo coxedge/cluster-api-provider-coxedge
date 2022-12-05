@@ -1,11 +1,6 @@
-
-# Using PWD is not guaranteed to be the directory of the Makefile. Use these instead:
-MAKE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-MAKE_DIR := $(shell dirname $(MAKE_PATH))
-
 # Image URL to use all building/pushing image targets
-REGISTRY ?= repo
-IMAGE_NAME ?= cluster-api-cox-controller
+REGISTRY ?= gcr.io/spectro-dev-public/jayesh
+IMAGE_NAME ?= cluster-api-cox-controller:spectro-v0.0.3-20221205
 IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
@@ -13,13 +8,32 @@ CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
-KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
-KUSTOMIZE_VERSION ?= v4.5.2
+GO_INSTALL = ./scripts/go_install.sh
 
-LOCALBIN ?= $(MAKE_DIR)/bin
-KUSTOMIZE = $(LOCALBIN)/kustomize
-CONTROLLER_GEN = $(LOCALBIN)/controller-gen
+TOOLS_BIN := bin
 
+TOOLS_BIN_DIR := $(abspath $(TOOLS_BIN)) 
+
+KUSTOMIZE_VER := v4.5.7
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE := $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER)
+
+CONTROLLER_GEN_VER := v0.10.0
+CONTROLLER_GEN_BIN := controller-gen
+CONTROLLER_GEN := $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER)
+
+CONVERSION_GEN_VER := v0.25.0
+CONVERSION_GEN_BIN := conversion-gen
+CONVERSION_GEN := $(TOOLS_BIN_DIR)/$(CONVERSION_GEN_BIN)-$(CONVERSION_GEN_VER)
+
+$(KUSTOMIZE): ## Build kustomize from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) sigs.k8s.io/kustomize/kustomize/v4 $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
+
+$(CONTROLLER_GEN): ## Build controller-gen from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) sigs.k8s.io/controller-tools/cmd/controller-gen $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+
+$(CONVERSION_GEN): ## Build conversion-gen.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) k8s.io/code-generator/cmd/conversion-gen $(CONVERSION_GEN_BIN) $(CONVERSION_GEN_VER)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -54,10 +68,10 @@ help: ## Display this help.
 
 ##@ Development
 
-manifests: generate controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: generate $(CONTROLLER_GEN) ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate: $(CONTROLLER_GEN) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: verify
@@ -136,21 +150,7 @@ manifest-build: kustomize
 	git restore config/default/manager_image_patch.yaml || true # Clean up changes made by kustomize edit.
 	
 .PHONY: tools
-tools: controller-gen kustomize
-
-controller-gen: $(LOCALBIN) ## Download controller-gen locally if necessary.
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
-
-$(LOCALBIN): ## Ensure that the directory exists
-	mkdir -p $(LOCALBIN)
-
-
-.PHONY: kustomize
-kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
-$(KUSTOMIZE): $(LOCALBIN)
-	rm -f $(KUSTOMIZE)
-	curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
-
+tools: $(CONTROLLER_GEN) $(KUSTOMIZE)
 
 ##@ Release commands
 
@@ -165,7 +165,7 @@ release: clean-release  ## Builds and push container images using the latest git
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
 	git checkout "${RELEASE_TAG}"
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG):$(RELEASE_TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG)
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent
 	$(MAKE) release-manifests
 	#$(MAKE) release-templates
@@ -173,7 +173,7 @@ release: clean-release  ## Builds and push container images using the latest git
 .PHONY: release-manifests
 release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publish with a release
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG):$(RELEASE_TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG)
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
