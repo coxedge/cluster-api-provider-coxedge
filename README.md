@@ -6,7 +6,7 @@ Kubernetes-native declarative infrastructure for [Cox Edge](https://www.coxedge.
 
 ## What is the Cluster API Provider Cox Edge
 
-The [Cluster API][https://github.com/kubernetes-sigs/cluster-api] brings declarative, Kubernetes-style APIs to cluster creation, configuration and
+The [Cluster API](https://github.com/kubernetes-sigs/cluster-api) brings declarative, Kubernetes-style APIs to cluster creation, configuration and
 management. The API itself is shared across multiple cloud providers allowing for true Cox Edge
 hybrid deployments of Kubernetes. 
 
