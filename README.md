@@ -1,6 +1,6 @@
 # Kubernetes Cluster API Provider Cox
 
-<p align="center"><img alt="capi" src="https://cluster-api.sigs.k8s.io/#kubernetes-cluster-apidiv-stylefloat-right-position-relative-display-inlineimg-srcimagesintroductionsvg-width160px-div" width="160x" /><img alt="capi" src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.coxedge.com%2Fschedule&psig=AOvVaw36DdSzXhauYaKA4uJPD0RA&ust=1670324903288000&source=images&cd=vfe&ved=0CBAQjRxqFwoTCIDOgKer4vsCFQAAAAAdAAAAABAD" width="192x" /></p>
+<!-- <p align="center"><img alt="capi" src="https://cluster-api.sigs.k8s.io/#kubernetes-cluster-apidiv-stylefloat-right-position-relative-display-inlineimg-srcimagesintroductionsvg-width160px-div" width="160x" /><img alt="capi" src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.coxedge.com%2Fschedule&psig=AOvVaw36DdSzXhauYaKA4uJPD0RA&ust=1670324903288000&source=images&cd=vfe&ved=0CBAQjRxqFwoTCIDOgKer4vsCFQAAAAAdAAAAABAD" width="192x" /></p> -->
 
 Kubernetes-native declarative infrastructure for [Cox Edge](https://www.coxedge.com).
 
@@ -14,31 +14,31 @@ hybrid deployments of Kubernetes.
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-|  | Cluster API `v1beta1` (`v1.0.x`) |
-|---|---|---|---|
-|Cox Edge Provider `v0.4.x` | ✓ |
+|                             | Cluster API v1beta1 (v1.x)  |
+| --------------------------- | :-------------------------: |
+| Cox Edge v1beta1  `(v0.4.x)`|               ✓             |
 
 ## Installation
 
 ### For Development
 
-#### Creating a kind cluster
+- #### Creating a kind cluster
 ```shell
 kiind create cluster
 ```
 
-#### Deploying the core components of Cluster API
+- #### Deploying the core components of Cluster API
 ```shell
 clusterctl init
 ```
 
-#### Building Image 
+- #### Building Image 
 Change `REGISTRY` and `IMAGE_NAME` according to your setup
 ```shell
 make docker-build && make docker-push
 ```
 
-#### Cluster creation
+- #### Cluster creation
 ```shell
 make release-manifests-clusterctl
 
