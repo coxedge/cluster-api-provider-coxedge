@@ -27,7 +27,7 @@ This provider's versions are compatible with the following versions of Cluster A
 kind create cluster
 ```
 
-- #### Deploying the core components of Cluster API
+- #### Initialize the management cluster
 ```shell
 clusterctl init
 ```
@@ -46,10 +46,17 @@ kubectl apply -f build/releases/infrastructure-cox/latest/infrastructure-compone
 
 kubectl apply -f examples/coxcluster.yaml
 ```
-### NOTE
+#### NOTE
 Please Note that the coxcluster.yaml file must have your required credentials.
 
-#### Getting cluster info
+### Getting cluster info
+
+- #### View cluster status
+```shell
+kubectl get cluster
+```
+
+- #### At glance view of cluster and resources
 ```shell
 clusterctl describe cluster <cluster_name>
 ```
