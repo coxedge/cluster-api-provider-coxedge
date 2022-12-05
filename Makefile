@@ -1,6 +1,6 @@
 # Image URL to use all building/pushing image targets
-REGISTRY ?= gcr.io/spectro-dev-public/jayesh
-IMAGE_NAME ?= cluster-api-cox-controller:spectro-v0.0.3-20221205
+REGISTRY ?= <YOUR REGISTRY>
+IMAGE_NAME ?= cluster-api-cox-controller:<YOUR TAG>
 IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
