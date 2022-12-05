@@ -14,9 +14,9 @@ hybrid deployments of Kubernetes.
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-|                             | Cluster API v1beta1 (v1.x)  |
-| --------------------------- | :-------------------------: |
-| Cox Edge v1beta1  `(v0.4.x)`|               ✓             |
+|                             |Cluster API v1alpha4 (v0.4) |Cluster API v1beta1 (v1.x)  |
+| --------------------------- |:-------------------------: |:-------------------------: |
+| Cox Edge v1beta1  `(v0.4.x)`|              ☓             |              ✓             |
 
 ## Installation
 
@@ -24,7 +24,7 @@ This provider's versions are compatible with the following versions of Cluster A
 
 - #### Creating a kind cluster
 ```shell
-kiind create cluster
+kind create cluster
 ```
 
 - #### Deploying the core components of Cluster API
