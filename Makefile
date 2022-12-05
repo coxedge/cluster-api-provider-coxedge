@@ -1,8 +1,3 @@
-
-# Using PWD is not guaranteed to be the directory of the Makefile. Use these instead:
-# MAKE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-# MAKE_DIR := $(shell dirname $(MAKE_PATH))
-
 # Image URL to use all building/pushing image targets
 REGISTRY ?= gcr.io/spectro-dev-public/jayesh
 IMAGE_NAME ?= cluster-api-cox-controller:spectro-v0.0.3-20221205
@@ -12,13 +7,6 @@ CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
-
-# KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
-# KUSTOMIZE_VERSION ?= v4.5.2
-
-# LOCALBIN ?= $(MAKE_DIR)/bin
-# KUSTOMIZE = $(LOCALBIN)/kustomize
-# CONTROLLER_GEN = $(LOCALBIN)/controller-gen
 
 GO_INSTALL = ./scripts/go_install.sh
 
@@ -163,20 +151,6 @@ manifest-build: kustomize
 	
 .PHONY: tools
 tools: $(CONTROLLER_GEN) $(KUSTOMIZE)
-
-# controller-gen: $(LOCALBIN) ## Download controller-gen locally if necessary.
-# 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
-
-# $(LOCALBIN): ## Ensure that the directory exists
-# 	mkdir -p $(LOCALBIN)
-
-
-# .PHONY: kustomize
-# kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
-# $(KUSTOMIZE): $(LOCALBIN)
-# 	rm -f $(KUSTOMIZE)
-# 	curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
-
 
 ##@ Release commands
 
