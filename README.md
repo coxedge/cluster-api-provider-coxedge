@@ -16,7 +16,7 @@ This provider's versions are compatible with the following versions of Cluster A
 
 |                             |Cluster API v1alpha4 (v0.4) |Cluster API v1beta1 (v1.x)  |
 | --------------------------- |:-------------------------: |:-------------------------: |
-| Cox Edge v1beta1  `(v0.4.x)`|              ☓             |              ✓             |
+| Cox Edge v1beta1  `(v0.5.x)`|              ☓             |              ✓             |
 
 ## Prerequisites
 
@@ -35,6 +35,7 @@ stringData:
   COX_API_KEY: <YOUR API KEY>
   COX_SERVICE: edge-service
   COX_ENVIRONMENT: <ENVIRONMENT NAME>
+  # By default COX_ORGANIZATION is commented. If you have an Organization ID, then and only then uncomment the same and fill in the ID.
   # COX_ORGANIZATION: <ORGANIZATION ID>
 ```  
 

@@ -42,8 +42,8 @@ stringData:
   COX_API_KEY: <YOUR API KEY>
   COX_SERVICE: edge-service
   COX_ENVIRONMENT: <ENVIRONMENT NAME>
-  # COX_ORGANIZATION: <ORGANIZATION ID>
   # By default COX_ORGANIZATION is commented. If you have an Organization ID, then and only then uncomment the same and fill in the ID.
+  # COX_ORGANIZATION: <ORGANIZATION ID>
 
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
