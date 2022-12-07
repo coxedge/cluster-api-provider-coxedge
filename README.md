@@ -26,10 +26,10 @@ providers:
   # Add the cox infrastructure provider to the clusterctl config for discovery
   - name: coxedge
     type: InfrastructureProvider
-    url: https://github.com/spectrocloud/cluster-api-provider-coxedge/releases/latest/
+    url: https://github.com/coxedge/cluster-api-provider-coxedge/releases/latest/
 ```
 
-- Ensure that the Cox provider has the required credentials. You will need to add your credentials in the [examples/coxcluster.yaml](https://github.com/spectrocloud/cluster-api-provider-coxedge/blob/spv1docs/examples/coxcluster.yaml#L36) file.
+- Ensure that the Cox provider has the required credentials. You will need to add your credentials in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file.
 ```yaml
 stringData:
   COX_API_KEY: <YOUR API KEY>
