@@ -16,7 +16,28 @@ This provider's versions are compatible with the following versions of Cluster A
 
 |                             |Cluster API v1alpha4 (v0.4) |Cluster API v1beta1 (v1.x)  |
 | --------------------------- |:-------------------------: |:-------------------------: |
-| Cox Edge v1beta1  `(v0.4.x)`|              ☓             |              ✓             |
+| Cox Edge v1beta1  `(v0.5.x)`|              ☓             |              ✓             |
+
+## Prerequisites
+
+- You will need to update your clusterctl config to be able to discover the provider, which is located by default ~/.cluster-api/clusterctl.yaml.
+```yaml
+providers:
+  # Add the cox infrastructure provider to the clusterctl config for discovery
+  - name: coxedge
+    type: InfrastructureProvider
+    url: https://github.com/coxedge/cluster-api-provider-coxedge/releases/latest/
+```
+
+- Ensure that the Cox provider has the required credentials. You will need to add your credentials in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file.
+```yaml
+stringData:
+  COX_API_KEY: <YOUR API KEY>
+  COX_SERVICE: edge-service
+  COX_ENVIRONMENT: <ENVIRONMENT NAME>
+  # By default COX_ORGANIZATION is commented. If you have an Organization ID, then and only then uncomment the same and fill in the ID.
+  # COX_ORGANIZATION: <ORGANIZATION ID>
+```  
 
 ## Installation
 
@@ -29,7 +50,7 @@ kind create cluster
 
 - #### Initialize the management cluster
 ```shell
-clusterctl init
+clusterctl init --infrastructure coxedge
 ```
 
 - #### Building Image 
