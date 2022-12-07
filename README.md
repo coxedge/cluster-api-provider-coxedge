@@ -18,6 +18,26 @@ This provider's versions are compatible with the following versions of Cluster A
 | --------------------------- |:-------------------------: |:-------------------------: |
 | Cox Edge v1beta1  `(v0.4.x)`|              ☓             |              ✓             |
 
+## Prerequisites
+
+- You will need to update your clusterctl config to be able to discover the provider, which is located by default ~/.cluster-api/clusterctl.yaml.
+```yaml
+providers:
+  # Add the cox infrastructure provider to the clusterctl config for discovery
+  - name: coxedge
+    type: InfrastructureProvider
+    url: https://github.com/spectrocloud/cluster-api-provider-coxedge/releases/latest/
+```
+
+- Ensure that the Cox provider has the required credentials. You will need to add your credentials in the [examples/coxcluster.yaml](https://github.com/spectrocloud/cluster-api-provider-coxedge/blob/spv1docs/examples/coxcluster.yaml#L36) file.
+```yaml
+stringData:
+  COX_API_KEY: <YOUR API KEY>
+  COX_SERVICE: edge-service
+  COX_ENVIRONMENT: <ENVIRONMENT NAME>
+  # COX_ORGANIZATION: <ORGANIZATION ID>
+```  
+
 ## Installation
 
 ### For Development
@@ -29,7 +49,7 @@ kind create cluster
 
 - #### Initialize the management cluster
 ```shell
-clusterctl init
+clusterctl init --infrastructure coxedge
 ```
 
 - #### Building Image 
