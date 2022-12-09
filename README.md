@@ -81,3 +81,7 @@ kubectl get cluster
 ```shell
 clusterctl describe cluster <cluster_name>
 ```
+
+## For Maintainers
+
+Document providing steps to publish a release is provided [here](release/publish-release.md).
