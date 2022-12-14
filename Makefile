@@ -176,7 +176,7 @@ release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publis
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(IMG)
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
-	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
 	git restore config/default/manager_image_patch.yaml || true # Clean up changes made by kustomize edit.
 
 .PHONY: release-manifests-clusterctl
