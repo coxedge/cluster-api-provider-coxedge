@@ -12,7 +12,7 @@ GO_INSTALL = ./scripts/go_install.sh
 
 TOOLS_BIN := bin
 
-TOOLS_BIN_DIR := $(abspath $(TOOLS_BIN)) 
+TOOLS_BIN_DIR := $(strip $(abspath $(TOOLS_BIN)))
 
 KUSTOMIZE_VER := v4.5.7
 KUSTOMIZE_BIN := kustomize
