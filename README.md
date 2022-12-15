@@ -38,6 +38,11 @@ stringData:
   # By default COX_ORGANIZATION is commented. If you have an Organization ID, then and only then uncomment the same and fill in the ID.
   # COX_ORGANIZATION: <ORGANIZATION ID>
 ```  
+- You will also need to fill in your ssh key in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file at lines [192](examples/coxcluster.yaml#L192) and [247](examples/coxcluster.yaml#L247).
+```yaml
+      sshAuthorizedKeys:
+        - # Please fill in your ssh key as this is a required field.
+```        
 
 ## Installation
 

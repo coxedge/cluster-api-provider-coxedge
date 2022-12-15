@@ -189,8 +189,7 @@ spec:
           publicPort: "4789"
       specs: SP-5
       sshAuthorizedKeys:
-        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDNE9dySYQGo/R2oI5MwFZRnKmOCzNJQIDanbC7rir02cD5sX+nEMYpVFbyjohAUCQu+jlhZcsyg0EuHifYKAG6FvZA1ngZiT/mFBFmmOoSU3TscyMchH36QyW8DcubiQEI1CsGuKw+Dkq8HxEQMim4XSVF4mfz8KO+p9kUX6DjZTIJsEIqu27vQKRQGdWrPnSv0AVj+NbWgwTL3OOSetIDR5hJs197UEGdS7+0Cypt7US8GUUuqQhGw1Y9trseow6VpB3CIBZp46PFCSX+SzCjdWAehgn57VsaoyhmVZ1+TKHfRhmqTRjL2BM0iC/m0u7YHi/WQnGuLEeUiJN247Z5WeqR3QnAge+sRjdShlCYRb/BS5fVCm4sbTXl71fB/xmtAOdV4IEBLtIFA3imyAYDin/M+oTsjgIwMRJFC93nQuKLTGhW4Zfgi05HVjr3+jVkPcN7zoD5Khifp6m7p00sIDDmj/WnJCEsVX1EMYPdKLQqNbrxQLmsx+AzyNYTU9GIlMuq+MVX7Q78NfkeDTqpjtikHkk4k1SPK1BQ6DxtvA9VO55ISW1HeEGRkUrT5BXSHGMcFWDPdW6wfEh6h8ER5Yijkb6OZm6/p9Vp5RUgvStejIjkJlES261h7MXbBzMkJOptXq/tSU4pcL3xRAUR0mLYN4mQhln6Jvmk2NVQMQ==
-          spectro@spectro
+        - # Please fill in your ssh key as this is a required field.
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -213,7 +212,7 @@ spec:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
           name: pmk-cox-1-md-0
-      clusterName: aws-quickstart
+      clusterName: <cluster-name>
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: CoxMachineTemplate
@@ -245,8 +244,7 @@ spec:
           publicPort: "4789"
       specs: SP-5
       sshAuthorizedKeys:
-        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDNE9dySYQGo/R2oI5MwFZRnKmOCzNJQIDanbC7rir02cD5sX+nEMYpVFbyjohAUCQu+jlhZcsyg0EuHifYKAG6FvZA1ngZiT/mFBFmmOoSU3TscyMchH36QyW8DcubiQEI1CsGuKw+Dkq8HxEQMim4XSVF4mfz8KO+p9kUX6DjZTIJsEIqu27vQKRQGdWrPnSv0AVj+NbWgwTL3OOSetIDR5hJs197UEGdS7+0Cypt7US8GUUuqQhGw1Y9trseow6VpB3CIBZp46PFCSX+SzCjdWAehgn57VsaoyhmVZ1+TKHfRhmqTRjL2BM0iC/m0u7YHi/WQnGuLEeUiJN247Z5WeqR3QnAge+sRjdShlCYRb/BS5fVCm4sbTXl71fB/xmtAOdV4IEBLtIFA3imyAYDin/M+oTsjgIwMRJFC93nQuKLTGhW4Zfgi05HVjr3+jVkPcN7zoD5Khifp6m7p00sIDDmj/WnJCEsVX1EMYPdKLQqNbrxQLmsx+AzyNYTU9GIlMuq+MVX7Q78NfkeDTqpjtikHkk4k1SPK1BQ6DxtvA9VO55ISW1HeEGRkUrT5BXSHGMcFWDPdW6wfEh6h8ER5Yijkb6OZm6/p9Vp5RUgvStejIjkJlES261h7MXbBzMkJOptXq/tSU4pcL3xRAUR0mLYN4mQhln6Jvmk2NVQMQ==
-          spectro@spectro
+        - # Please fill in your ssh key as this is a required field.
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

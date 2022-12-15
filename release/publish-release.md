@@ -6,6 +6,7 @@
 ```shell
 git tag -a <tag-name> -m "<tag-message>"
 ```
+NOTE: Please use `-a` while creating tag. '-a' refers to the tag being annotated. Only annotated tags can be pushed onto remote.
 
 - Push the created tag onto remote.
 ```shell
