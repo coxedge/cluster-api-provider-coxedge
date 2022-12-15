@@ -89,7 +89,7 @@ kubectl apply -f examples/cni.yaml
 ```
 
 - #### Installing CSI [OPTIONAL]
-`For installing CSI, please refer to [Longhorn](https://github.com/longhorn/longhorn#installation) installation guide.`
+For installing CSI, please refer to [Longhorn](https://github.com/longhorn/longhorn#installation) installation guide.
 
 ## Getting cluster info
 
