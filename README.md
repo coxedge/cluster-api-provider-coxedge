@@ -20,6 +20,12 @@ This provider's versions are compatible with the following versions of Cluster A
 
 ## Prerequisites
 
+- GO version should be greater than or equal to `1.13`
+
+- Ensure that you have `make` installed.
+
+- Ensure that you have the latest `git` version.
+
 - You will need to update your clusterctl config to be able to discover the provider, which is located by default ~/.cluster-api/clusterctl.yaml.
 ```yaml
 providers:
@@ -38,6 +44,12 @@ stringData:
   # By default COX_ORGANIZATION is commented. If you have an Organization ID, then and only then uncomment the same and fill in the ID.
   # COX_ORGANIZATION: <ORGANIZATION ID>
 ```  
+- You will also need to fill in your ssh key in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file at lines [192](examples/coxcluster.yaml#L192) and [247](examples/coxcluster.yaml#L247).
+```yaml
+      sshAuthorizedKeys:
+        - # Please fill in your ssh key as this is a required field.
+```        
+
 - You will also need to fill in your ssh key in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file at lines [192](examples/coxcluster.yaml#L192) and [247](examples/coxcluster.yaml#L247).
 ```yaml
       sshAuthorizedKeys:
@@ -72,10 +84,20 @@ kubectl apply -f build/releases/infrastructure-cox/latest/infrastructure-compone
 
 kubectl apply -f examples/coxcluster.yaml
 ```
-#### NOTE
-Please Note that the coxcluster.yaml file must have your required credentials.
 
-### Getting cluster info
+NOTE: You will need to install Pod Security Policies and CNI before using/accessing the cluster.
+
+- #### Installing Pod Security Policies and CNI
+```shell
+kubectl apply -f examples/podsecuritypolicies.yaml
+
+kubectl apply -f examples/cni.yaml
+```
+
+- #### Installing CSI [OPTIONAL]
+`For installing CSI, please refer to [Longhorn](https://github.com/longhorn/longhorn#installation) installation guide.`
+
+## Getting cluster info
 
 - #### View cluster status
 ```shell

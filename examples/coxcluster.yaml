@@ -32,7 +32,6 @@ spec:
     pop:
     - AMS
 ---
-
 apiVersion: v1
 kind: Secret
 metadata:
@@ -44,7 +43,6 @@ stringData:
   COX_ENVIRONMENT: <ENVIRONMENT NAME>
   # By default COX_ORGANIZATION is commented. If you have an Organization ID, then and only then uncomment the same and fill in the ID.
   # COX_ORGANIZATION: <ORGANIZATION ID>
-
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
