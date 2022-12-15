@@ -48,19 +48,7 @@ stringData:
 ```yaml
       sshAuthorizedKeys:
         - # Please fill in your ssh key as this is a required field.
-```        
-
-- You will also need to fill in your ssh key in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file at lines [192](examples/coxcluster.yaml#L192) and [247](examples/coxcluster.yaml#L247).
-```yaml
-      sshAuthorizedKeys:
-        - # Please fill in your ssh key as this is a required field.
-```        
-
-- You will also need to fill in your ssh key in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file at lines [192](examples/coxcluster.yaml#L192) and [247](examples/coxcluster.yaml#L247).
-```yaml
-      sshAuthorizedKeys:
-        - # Please fill in your ssh key as this is a required field.
-```        
+```            
 
 ## Installation
 
