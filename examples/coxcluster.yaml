@@ -210,6 +210,7 @@ spec:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
           name: pmk-cox-1-md-0
+      clusterName: pmk-cox-1    
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: CoxMachineTemplate

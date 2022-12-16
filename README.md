@@ -81,7 +81,17 @@ kubectl apply -f examples/coxcluster.yaml
 
 NOTE: You will need to install Pod Security Policies and CNI before using/accessing the cluster.
 
+- #### Exporting Kubeconfig and moving to the target cluster
+```shell
+clusterctl get kubeconfig <cluster-name> -n default > coxcluster.kubeconfig
+
+export KUBECONFIG=coxcluster.kubeconfig
+```
+
 - #### Installing Pod Security Policies and CNI
+
+NOTE: Please ensure that you are on your target cluster before executing the below commands for installing CNI and PodSecurityPolicies.
+
 ```shell
 kubectl apply -f examples/podsecuritypolicies.yaml
 
