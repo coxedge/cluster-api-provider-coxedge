@@ -27,43 +27,12 @@ spec:
       containers:
       - command:
         - /manager
-        env:
-        - name: COX_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: coxedge
-              key: COX_API_KEY
-              optional: true # Marked as optional to allow CAPC to run without root credentials
-        - name: COX_SERVICE
-          valueFrom:
-            secretKeyRef:
-              name: coxedge
-              key: COX_SERVICE
-              optional: true # Marked as optional to allow CAPC to run without root credentials
-        - name: COX_ENVIRONMENT
-          valueFrom:
-            secretKeyRef:
-              name: coxedge
-              key: COX_ENVIRONMENT
-              optional: true # Marked as optional to allow CAPC to run without root credentials
         args:
         - --leader-elect
         image: controller
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
         resources:
           limits:
             cpu: 100m

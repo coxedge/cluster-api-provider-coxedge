@@ -7,13 +7,13 @@ spec:
   clusterNetwork:
     pods:
       cidrBlocks:
-        - 10.20.0.0/22
+        - 192.168.0.0/16
     services:
       cidrBlocks:
-        - 10.21.0.0/22
+        - 10.96.0.0/12
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-    kind: NodeletControlPlane
+    kind: KubeadmControlPlane
     name: pmk-cox-1-control-plane
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -25,28 +25,141 @@ kind: CoxCluster
 metadata:
   name: pmk-cox-1
   namespace: default
+spec:
+  credentials:
+    name: coxedge
+  controlPlaneLoadBalancer:
+    pop:
+    - AMS
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: coxedge
+  namespace: default
+stringData:
+  COX_API_KEY: <YOUR API KEY>
+  COX_SERVICE: edge-services
+  COX_ENVIRONMENT: <ENVIRONMENT NAME>
+  # By default COX_ORGANIZATION is commented. If you have an Organization ID, then and only then uncomment the same and fill in the ID.
+  # COX_ORGANIZATION: <ORGANIZATION ID>
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-kind: NodeletControlPlane
+kind: KubeadmControlPlane
 metadata:
   name: pmk-cox-1-control-plane
-  namespace: default
 spec:
+  replicas: 1
+  version: v1.21.14
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-      kind: CoxMachineTemplate
+      kind:  CoxMachineTemplate
       name: pmk-cox-1-control-plane
-    nodeletConfigSpec: {}
-  replicas: 1
-  version: v1.20.11
-  cni:
-    calico:
-      natOutgoing: true
-      IPIPMode: "Always"
-  schedulable: true
-  apiserver:
-    privileged: true # Needed for calico
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          anonymous-auth: "true"
+          audit-log-maxage: "30"
+          audit-log-maxbackup: "10"
+          audit-log-maxsize: "100"
+          audit-log-path: /var/log/apiserver/audit.log
+          audit-policy-file: /etc/kubernetes/audit-policy.yaml
+          authorization-mode: RBAC,Node
+          default-not-ready-toleration-seconds: "60"
+          default-unreachable-toleration-seconds: "60"
+          disable-admission-plugins: AlwaysAdmit
+          enable-admission-plugins: AlwaysPullImages,NamespaceLifecycle,ServiceAccount,NodeRestriction,PodSecurityPolicy
+          insecure-port: "0"
+          profiling: "false"
+          secure-port: "6443"
+          tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256
+        extraVolumes:
+          - hostPath: /var/log/apiserver
+            mountPath: /var/log/apiserver
+            name: audit-log
+            pathType: DirectoryOrCreate
+          - hostPath: /etc/kubernetes/audit-policy.yaml
+            mountPath: /etc/kubernetes/audit-policy.yaml
+            name: audit-policy
+            pathType: File
+            readOnly: true
+        timeoutForControlPlane: 10m0s
+      controllerManager:
+        extraArgs:
+          feature-gates: RotateKubeletServerCertificate=true
+          pod-eviction-timeout: 1m0s
+          profiling: "false"
+          terminated-pod-gc-threshold: "25"
+          use-service-account-credentials: "true"
+      dns: {}
+      etcd: {}
+      networking: {}
+      scheduler:
+        extraArgs:
+          profiling: "false"
+    files:
+      - content: YXBpVmVyc2lvbjogYXVkaXQuazhzLmlvL3YxCmtpbmQ6IFBvbGljeQpydWxlczoKICAtIGxldmVsOiBOb25lCiAgICB1c2VyczogWyJzeXN0ZW06a3ViZS1wcm94eSJdCiAgICB2ZXJiczogWyJ3YXRjaCJdCiAgICByZXNvdXJjZXM6CiAgICAgIC0gZ3JvdXA6ICIiICMgY29yZQogICAgICAgIHJlc291cmNlczogWyJlbmRwb2ludHMiLCAic2VydmljZXMiLCAic2VydmljZXMvc3RhdHVzIl0KICAtIGxldmVsOiBOb25lCiAgICB1c2VyczogWyJzeXN0ZW06dW5zZWN1cmVkIl0KICAgIG5hbWVzcGFjZXM6IFsia3ViZS1zeXN0ZW0iXQogICAgdmVyYnM6IFsiZ2V0Il0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbImNvbmZpZ21hcHMiXQogIC0gbGV2ZWw6IE5vbmUKICAgIHVzZXJzOiBbImt1YmVsZXQiXSAjIGxlZ2FjeSBrdWJlbGV0IGlkZW50aXR5CiAgICB2ZXJiczogWyJnZXQiXQogICAgcmVzb3VyY2VzOgogICAgICAtIGdyb3VwOiAiIiAjIGNvcmUKICAgICAgICByZXNvdXJjZXM6IFsibm9kZXMiLCAibm9kZXMvc3RhdHVzIl0KICAtIGxldmVsOiBOb25lCiAgICB1c2VyR3JvdXBzOiBbInN5c3RlbTpub2RlcyJdCiAgICB2ZXJiczogWyJnZXQiXQogICAgcmVzb3VyY2VzOgogICAgICAtIGdyb3VwOiAiIiAjIGNvcmUKICAgICAgICByZXNvdXJjZXM6IFsibm9kZXMiLCAibm9kZXMvc3RhdHVzIl0KICAtIGxldmVsOiBOb25lCiAgICB1c2VyczoKICAgICAgLSBzeXN0ZW06a3ViZS1jb250cm9sbGVyLW1hbmFnZXIKICAgICAgLSBzeXN0ZW06a3ViZS1zY2hlZHVsZXIKICAgICAgLSBzeXN0ZW06c2VydmljZWFjY291bnQ6a3ViZS1zeXN0ZW06ZW5kcG9pbnQtY29udHJvbGxlcgogICAgdmVyYnM6IFsiZ2V0IiwgInVwZGF0ZSJdCiAgICBuYW1lc3BhY2VzOiBbImt1YmUtc3lzdGVtIl0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbImVuZHBvaW50cyJdCiAgLSBsZXZlbDogTm9uZQogICAgdXNlcnM6IFsic3lzdGVtOmFwaXNlcnZlciJdCiAgICB2ZXJiczogWyJnZXQiXQogICAgcmVzb3VyY2VzOgogICAgICAtIGdyb3VwOiAiIiAjIGNvcmUKICAgICAgICByZXNvdXJjZXM6IFsibmFtZXNwYWNlcyIsICJuYW1lc3BhY2VzL3N0YXR1cyIsICJuYW1lc3BhY2VzL2ZpbmFsaXplIl0KICAtIGxldmVsOiBOb25lCiAgICB1c2VyczogWyJjbHVzdGVyLWF1dG9zY2FsZXIiXQogICAgdmVyYnM6IFsiZ2V0IiwgInVwZGF0ZSJdCiAgICBuYW1lc3BhY2VzOiBbImt1YmUtc3lzdGVtIl0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbImNvbmZpZ21hcHMiLCAiZW5kcG9pbnRzIl0KICAjIERvbid0IGxvZyBIUEEgZmV0Y2hpbmcgbWV0cmljcy4KICAtIGxldmVsOiBOb25lCiAgICB1c2VyczoKICAgICAgLSBzeXN0ZW06a3ViZS1jb250cm9sbGVyLW1hbmFnZXIKICAgIHZlcmJzOiBbImdldCIsICJsaXN0Il0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIm1ldHJpY3MuazhzLmlvIgogICMgRG9uJ3QgbG9nIHRoZXNlIHJlYWQtb25seSBVUkxzLgogIC0gbGV2ZWw6IE5vbmUKICAgIG5vblJlc291cmNlVVJMczoKICAgICAgLSAvaGVhbHRoeioKICAgICAgLSAvdmVyc2lvbgogICAgICAtIC9zd2FnZ2VyKgogICMgRG9uJ3QgbG9nIGV2ZW50cyByZXF1ZXN0cy4KICAtIGxldmVsOiBOb25lCiAgICByZXNvdXJjZXM6CiAgICAgIC0gZ3JvdXA6ICIiICMgY29yZQogICAgICAgIHJlc291cmNlczogWyJldmVudHMiXQogICMgbm9kZSBhbmQgcG9kIHN0YXR1cyBjYWxscyBmcm9tIG5vZGVzIGFyZSBoaWdoLXZvbHVtZSBhbmQgY2FuIGJlIGxhcmdlLCBkb24ndCBsb2cgcmVzcG9uc2VzIGZvciBleHBlY3RlZCB1cGRhdGVzIGZyb20gbm9kZXMKICAtIGxldmVsOiBSZXF1ZXN0CiAgICB1c2VyczogWyJrdWJlbGV0IiwgInN5c3RlbTpub2RlLXByb2JsZW0tZGV0ZWN0b3IiLCAic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOm5vZGUtcHJvYmxlbS1kZXRlY3RvciJdCiAgICB2ZXJiczogWyJ1cGRhdGUiLCJwYXRjaCJdCiAgICByZXNvdXJjZXM6CiAgICAgIC0gZ3JvdXA6ICIiICMgY29yZQogICAgICAgIHJlc291cmNlczogWyJub2Rlcy9zdGF0dXMiLCAicG9kcy9zdGF0dXMiXQogICAgb21pdFN0YWdlczoKICAgICAgLSAiUmVxdWVzdFJlY2VpdmVkIgogIC0gbGV2ZWw6IFJlcXVlc3QKICAgIHVzZXJHcm91cHM6IFsic3lzdGVtOm5vZGVzIl0KICAgIHZlcmJzOiBbInVwZGF0ZSIsInBhdGNoIl0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbIm5vZGVzL3N0YXR1cyIsICJwb2RzL3N0YXR1cyJdCiAgICBvbWl0U3RhZ2VzOgogICAgICAtICJSZXF1ZXN0UmVjZWl2ZWQiCiAgIyBkZWxldGVjb2xsZWN0aW9uIGNhbGxzIGNhbiBiZSBsYXJnZSwgZG9uJ3QgbG9nIHJlc3BvbnNlcyBmb3IgZXhwZWN0ZWQgbmFtZXNwYWNlIGRlbGV0aW9ucwogIC0gbGV2ZWw6IFJlcXVlc3QKICAgIHVzZXJzOiBbInN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTpuYW1lc3BhY2UtY29udHJvbGxlciJdCiAgICB2ZXJiczogWyJkZWxldGVjb2xsZWN0aW9uIl0KICAgIG9taXRTdGFnZXM6CiAgICAgIC0gIlJlcXVlc3RSZWNlaXZlZCIKICAjIFNlY3JldHMsIENvbmZpZ01hcHMsIGFuZCBUb2tlblJldmlld3MgY2FuIGNvbnRhaW4gc2Vuc2l0aXZlICYgYmluYXJ5IGRhdGEsCiAgIyBzbyBvbmx5IGxvZyBhdCB0aGUgTWV0YWRhdGEgbGV2ZWwuCiAgLSBsZXZlbDogTWV0YWRhdGEKICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbInNlY3JldHMiLCAiY29uZmlnbWFwcyJdCiAgICAgIC0gZ3JvdXA6IGF1dGhlbnRpY2F0aW9uLms4cy5pbwogICAgICAgIHJlc291cmNlczogWyJ0b2tlbnJldmlld3MiXQogICAgb21pdFN0YWdlczoKICAgICAgLSAiUmVxdWVzdFJlY2VpdmVkIgogICMgR2V0IHJlcHNvbnNlcyBjYW4gYmUgbGFyZ2U7IHNraXAgdGhlbS4KICAtIGxldmVsOiBSZXF1ZXN0CiAgICB2ZXJiczogWyJnZXQiLCAibGlzdCIsICJ3YXRjaCJdCiAgICByZXNvdXJjZXM6CiAgICAtIGdyb3VwOiAiIiAjIGNvcmUKICAgIC0gZ3JvdXA6ICJhZG1pc3Npb25yZWdpc3RyYXRpb24uazhzLmlvIgogICAgLSBncm91cDogImFwaWV4dGVuc2lvbnMuazhzLmlvIgogICAgLSBncm91cDogImFwaXJlZ2lzdHJhdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXBwcyIKICAgIC0gZ3JvdXA6ICJhdXRoZW50aWNhdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXV0aG9yaXphdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXV0b3NjYWxpbmciCiAgICAtIGdyb3VwOiAiYmF0Y2giCiAgICAtIGdyb3VwOiAiY2VydGlmaWNhdGVzLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJleHRlbnNpb25zIgogICAgLSBncm91cDogIm1ldHJpY3MuazhzLmlvIgogICAgLSBncm91cDogIm5ldHdvcmtpbmcuazhzLmlvIgogICAgLSBncm91cDogInBvbGljeSIKICAgIC0gZ3JvdXA6ICJyYmFjLmF1dGhvcml6YXRpb24uazhzLmlvIgogICAgLSBncm91cDogInNldHRpbmdzLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJzdG9yYWdlLms4cy5pbyIKICAgIG9taXRTdGFnZXM6CiAgICAgIC0gIlJlcXVlc3RSZWNlaXZlZCIKICAjIERlZmF1bHQgbGV2ZWwgZm9yIGtub3duIEFQSXMKICAtIGxldmVsOiBSZXF1ZXN0UmVzcG9uc2UKICAgIHJlc291cmNlczoKICAgIC0gZ3JvdXA6ICIiICMgY29yZQogICAgLSBncm91cDogImFkbWlzc2lvbnJlZ2lzdHJhdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXBpZXh0ZW5zaW9ucy5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXBpcmVnaXN0cmF0aW9uLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJhcHBzIgogICAgLSBncm91cDogImF1dGhlbnRpY2F0aW9uLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJhdXRob3JpemF0aW9uLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJhdXRvc2NhbGluZyIKICAgIC0gZ3JvdXA6ICJiYXRjaCIKICAgIC0gZ3JvdXA6ICJjZXJ0aWZpY2F0ZXMuazhzLmlvIgogICAgLSBncm91cDogImV4dGVuc2lvbnMiCiAgICAtIGdyb3VwOiAibWV0cmljcy5rOHMuaW8iCiAgICAtIGdyb3VwOiAibmV0d29ya2luZy5rOHMuaW8iCiAgICAtIGdyb3VwOiAicG9saWN5IgogICAgLSBncm91cDogInJiYWMuYXV0aG9yaXphdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAic2V0dGluZ3MuazhzLmlvIgogICAgLSBncm91cDogInN0b3JhZ2UuazhzLmlvIgogICAgb21pdFN0YWdlczoKICAgICAgLSAiUmVxdWVzdFJlY2VpdmVkIgogICMgRGVmYXVsdCBsZXZlbCBmb3IgYWxsIG90aGVyIHJlcXVlc3RzLgogIC0gbGV2ZWw6IE1ldGFkYXRhCiAgICBvbWl0U3RhZ2VzOgogICAgICAtICJSZXF1ZXN0UmVjZWl2ZWQiCg==
+        encoding: base64
+        owner: root:root
+        path: /etc/kubernetes/audit-policy.yaml
+        permissions: "0600"
+      - content: dm0ub3ZlcmNvbW1pdF9tZW1vcnk9MQprZXJuZWwucGFuaWM9MTAKa2VybmVsLnBhbmljX29uX29vcHM9MQ==
+        encoding: base64
+        owner: root:root
+        path: /etc/sysctl.d/90-kubelet.conf
+        permissions: "0600"
+      - content: YnJfbmV0ZmlsdGVy
+        encoding: base64
+        owner: root:root
+        path: /etc/modules-load.d/k8s.conf
+        permissions: "0600"
+      - content: bmV0LmJyaWRnZS5icmlkZ2UtbmYtY2FsbC1pcDZ0YWJsZXMgPSAxCm5ldC5icmlkZ2UuYnJpZGdlLW5mLWNhbGwtaXB0YWJsZXMgPSAx
+        encoding: base64
+        owner: root:root
+        path: /etc/sysctl.d/k8s.conf
+        permissions: "0600"
+      - content: ZGViIFtzaWduZWQtYnk9L3Vzci9zaGFyZS9rZXlyaW5ncy9rdWJlcm5ldGVzLWFyY2hpdmUta2V5cmluZy5ncGddIGh0dHBzOi8vYXB0Lmt1YmVybmV0ZXMuaW8vIGt1YmVybmV0ZXMteGVuaWFsIG1haW4=
+        encoding: base64
+        owner: root:root
+        path: /etc/apt/sources.list.d/kubernetes.list
+        permissions: "0600"
+    format: cloud-config
+    initConfiguration:
+      localAPIEndpoint: {}
+      nodeRegistration:
+        kubeletExtraArgs:
+          event-qps: "0"
+          feature-gates: RotateKubeletServerCertificate=true
+          protect-kernel-defaults: "true"
+          read-only-port: "0"
+          tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256
+    joinConfiguration:
+      discovery: {}
+      nodeRegistration:
+        kubeletExtraArgs:
+          event-qps: "0"
+          feature-gates: RotateKubeletServerCertificate=true
+          protect-kernel-defaults: "true"
+          read-only-port: "0"
+          tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256
+    preKubeadmCommands:
+      - modprobe br_netfilter
+      - sysctl --system
+      - echo "1" > /proc/sys/net/ipv4/ip_forward
+      - swapoff -a
+      - sed -i '/ swap / s/^/#/' /etc/fstab
+      - apt update
+      - apt install -y containerd
+      - apt-get install -y apt-transport-https ca-certificates curl
+      - curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      - apt-get update
+      - apt-get install -y kubelet=1.21.14-00 kubeadm=1.21.14-00 kubectl=1.21.14-00
+      - apt-mark hold kubelet kubeadm kubectl
+      - echo "====> Applying kernel parameters for Kubelet"
+      - sysctl -p /etc/sysctl.d/90-kubelet.conf
+    useExperimentalRetryJoin: true
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CoxMachineTemplate
@@ -56,20 +169,25 @@ metadata:
 spec:
   template:
     spec:
+      deployments:
+        - instancesPerPop: "1"
+          name: default
+          pops:
+            - AMS
       image: stackpath-edge/ubuntu-2004-focal:v202102241556
       ports:
         - protocol: TCP
           publicPort: "22"
         - protocol: TCP
           publicPort: "6443"
-      sshAuthorizedKeys:
-        - $SSH_KEY
-      deployments:
-        - name: default
-          pops:
-            - LAS
-          instancesPerPop: "1"
+        # ports required for Calico VXLAN
+        - protocol: TCP
+          publicPort: "179"
+        - protocol: UDP
+          publicPort: "4789"
       specs: SP-5
+      sshAuthorizedKeys:
+        - # Please fill in your ssh key as this is a required field.
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -90,14 +208,14 @@ spec:
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-          kind: NodeletConfigTemplate
+          kind: KubeadmConfigTemplate
           name: pmk-cox-1-md-0
-      clusterName: aws-quickstart
+      clusterName: pmk-cox-1    
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: CoxMachineTemplate
         name: pmk-cox-1-md-0
-      version: v1.20.11
+      version: v1.21.14
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CoxMachineTemplate
@@ -107,26 +225,81 @@ metadata:
 spec:
   template:
     spec:
+      deployments:
+        - instancesPerPop: "1"
+          name: default
+          pops:
+            - AMS
       image: stackpath-edge/ubuntu-2004-focal:v202102241556
       ports:
         - protocol: TCP
           publicPort: "22"
         - protocol: TCP
           publicPort: "6443"
-      sshAuthorizedKeys:
-        - $SSH_KEY
-      deployments:
-        - name: default
-          pops:
-            - LAS
-          instancesPerPop: "1"
+        - protocol: TCP
+          publicPort: "179"
+        - protocol: UDP
+          publicPort: "4789"
       specs: SP-5
+      sshAuthorizedKeys:
+        - # Please fill in your ssh key as this is a required field.
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: NodeletConfigTemplate
+kind: KubeadmConfigTemplate
 metadata:
   name: pmk-cox-1-md-0
-  namespace: default
 spec:
   template:
-    spec: {}
+    spec:
+      files:
+        - content: YXBpVmVyc2lvbjogYXVkaXQuazhzLmlvL3YxCmtpbmQ6IFBvbGljeQpydWxlczoKICAtIGxldmVsOiBOb25lCiAgICB1c2VyczogWyJzeXN0ZW06a3ViZS1wcm94eSJdCiAgICB2ZXJiczogWyJ3YXRjaCJdCiAgICByZXNvdXJjZXM6CiAgICAgIC0gZ3JvdXA6ICIiICMgY29yZQogICAgICAgIHJlc291cmNlczogWyJlbmRwb2ludHMiLCAic2VydmljZXMiLCAic2VydmljZXMvc3RhdHVzIl0KICAtIGxldmVsOiBOb25lCiAgICB1c2VyczogWyJzeXN0ZW06dW5zZWN1cmVkIl0KICAgIG5hbWVzcGFjZXM6IFsia3ViZS1zeXN0ZW0iXQogICAgdmVyYnM6IFsiZ2V0Il0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbImNvbmZpZ21hcHMiXQogIC0gbGV2ZWw6IE5vbmUKICAgIHVzZXJzOiBbImt1YmVsZXQiXSAjIGxlZ2FjeSBrdWJlbGV0IGlkZW50aXR5CiAgICB2ZXJiczogWyJnZXQiXQogICAgcmVzb3VyY2VzOgogICAgICAtIGdyb3VwOiAiIiAjIGNvcmUKICAgICAgICByZXNvdXJjZXM6IFsibm9kZXMiLCAibm9kZXMvc3RhdHVzIl0KICAtIGxldmVsOiBOb25lCiAgICB1c2VyR3JvdXBzOiBbInN5c3RlbTpub2RlcyJdCiAgICB2ZXJiczogWyJnZXQiXQogICAgcmVzb3VyY2VzOgogICAgICAtIGdyb3VwOiAiIiAjIGNvcmUKICAgICAgICByZXNvdXJjZXM6IFsibm9kZXMiLCAibm9kZXMvc3RhdHVzIl0KICAtIGxldmVsOiBOb25lCiAgICB1c2VyczoKICAgICAgLSBzeXN0ZW06a3ViZS1jb250cm9sbGVyLW1hbmFnZXIKICAgICAgLSBzeXN0ZW06a3ViZS1zY2hlZHVsZXIKICAgICAgLSBzeXN0ZW06c2VydmljZWFjY291bnQ6a3ViZS1zeXN0ZW06ZW5kcG9pbnQtY29udHJvbGxlcgogICAgdmVyYnM6IFsiZ2V0IiwgInVwZGF0ZSJdCiAgICBuYW1lc3BhY2VzOiBbImt1YmUtc3lzdGVtIl0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbImVuZHBvaW50cyJdCiAgLSBsZXZlbDogTm9uZQogICAgdXNlcnM6IFsic3lzdGVtOmFwaXNlcnZlciJdCiAgICB2ZXJiczogWyJnZXQiXQogICAgcmVzb3VyY2VzOgogICAgICAtIGdyb3VwOiAiIiAjIGNvcmUKICAgICAgICByZXNvdXJjZXM6IFsibmFtZXNwYWNlcyIsICJuYW1lc3BhY2VzL3N0YXR1cyIsICJuYW1lc3BhY2VzL2ZpbmFsaXplIl0KICAtIGxldmVsOiBOb25lCiAgICB1c2VyczogWyJjbHVzdGVyLWF1dG9zY2FsZXIiXQogICAgdmVyYnM6IFsiZ2V0IiwgInVwZGF0ZSJdCiAgICBuYW1lc3BhY2VzOiBbImt1YmUtc3lzdGVtIl0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbImNvbmZpZ21hcHMiLCAiZW5kcG9pbnRzIl0KICAjIERvbid0IGxvZyBIUEEgZmV0Y2hpbmcgbWV0cmljcy4KICAtIGxldmVsOiBOb25lCiAgICB1c2VyczoKICAgICAgLSBzeXN0ZW06a3ViZS1jb250cm9sbGVyLW1hbmFnZXIKICAgIHZlcmJzOiBbImdldCIsICJsaXN0Il0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIm1ldHJpY3MuazhzLmlvIgogICMgRG9uJ3QgbG9nIHRoZXNlIHJlYWQtb25seSBVUkxzLgogIC0gbGV2ZWw6IE5vbmUKICAgIG5vblJlc291cmNlVVJMczoKICAgICAgLSAvaGVhbHRoeioKICAgICAgLSAvdmVyc2lvbgogICAgICAtIC9zd2FnZ2VyKgogICMgRG9uJ3QgbG9nIGV2ZW50cyByZXF1ZXN0cy4KICAtIGxldmVsOiBOb25lCiAgICByZXNvdXJjZXM6CiAgICAgIC0gZ3JvdXA6ICIiICMgY29yZQogICAgICAgIHJlc291cmNlczogWyJldmVudHMiXQogICMgbm9kZSBhbmQgcG9kIHN0YXR1cyBjYWxscyBmcm9tIG5vZGVzIGFyZSBoaWdoLXZvbHVtZSBhbmQgY2FuIGJlIGxhcmdlLCBkb24ndCBsb2cgcmVzcG9uc2VzIGZvciBleHBlY3RlZCB1cGRhdGVzIGZyb20gbm9kZXMKICAtIGxldmVsOiBSZXF1ZXN0CiAgICB1c2VyczogWyJrdWJlbGV0IiwgInN5c3RlbTpub2RlLXByb2JsZW0tZGV0ZWN0b3IiLCAic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOm5vZGUtcHJvYmxlbS1kZXRlY3RvciJdCiAgICB2ZXJiczogWyJ1cGRhdGUiLCJwYXRjaCJdCiAgICByZXNvdXJjZXM6CiAgICAgIC0gZ3JvdXA6ICIiICMgY29yZQogICAgICAgIHJlc291cmNlczogWyJub2Rlcy9zdGF0dXMiLCAicG9kcy9zdGF0dXMiXQogICAgb21pdFN0YWdlczoKICAgICAgLSAiUmVxdWVzdFJlY2VpdmVkIgogIC0gbGV2ZWw6IFJlcXVlc3QKICAgIHVzZXJHcm91cHM6IFsic3lzdGVtOm5vZGVzIl0KICAgIHZlcmJzOiBbInVwZGF0ZSIsInBhdGNoIl0KICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbIm5vZGVzL3N0YXR1cyIsICJwb2RzL3N0YXR1cyJdCiAgICBvbWl0U3RhZ2VzOgogICAgICAtICJSZXF1ZXN0UmVjZWl2ZWQiCiAgIyBkZWxldGVjb2xsZWN0aW9uIGNhbGxzIGNhbiBiZSBsYXJnZSwgZG9uJ3QgbG9nIHJlc3BvbnNlcyBmb3IgZXhwZWN0ZWQgbmFtZXNwYWNlIGRlbGV0aW9ucwogIC0gbGV2ZWw6IFJlcXVlc3QKICAgIHVzZXJzOiBbInN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTpuYW1lc3BhY2UtY29udHJvbGxlciJdCiAgICB2ZXJiczogWyJkZWxldGVjb2xsZWN0aW9uIl0KICAgIG9taXRTdGFnZXM6CiAgICAgIC0gIlJlcXVlc3RSZWNlaXZlZCIKICAjIFNlY3JldHMsIENvbmZpZ01hcHMsIGFuZCBUb2tlblJldmlld3MgY2FuIGNvbnRhaW4gc2Vuc2l0aXZlICYgYmluYXJ5IGRhdGEsCiAgIyBzbyBvbmx5IGxvZyBhdCB0aGUgTWV0YWRhdGEgbGV2ZWwuCiAgLSBsZXZlbDogTWV0YWRhdGEKICAgIHJlc291cmNlczoKICAgICAgLSBncm91cDogIiIgIyBjb3JlCiAgICAgICAgcmVzb3VyY2VzOiBbInNlY3JldHMiLCAiY29uZmlnbWFwcyJdCiAgICAgIC0gZ3JvdXA6IGF1dGhlbnRpY2F0aW9uLms4cy5pbwogICAgICAgIHJlc291cmNlczogWyJ0b2tlbnJldmlld3MiXQogICAgb21pdFN0YWdlczoKICAgICAgLSAiUmVxdWVzdFJlY2VpdmVkIgogICMgR2V0IHJlcHNvbnNlcyBjYW4gYmUgbGFyZ2U7IHNraXAgdGhlbS4KICAtIGxldmVsOiBSZXF1ZXN0CiAgICB2ZXJiczogWyJnZXQiLCAibGlzdCIsICJ3YXRjaCJdCiAgICByZXNvdXJjZXM6CiAgICAtIGdyb3VwOiAiIiAjIGNvcmUKICAgIC0gZ3JvdXA6ICJhZG1pc3Npb25yZWdpc3RyYXRpb24uazhzLmlvIgogICAgLSBncm91cDogImFwaWV4dGVuc2lvbnMuazhzLmlvIgogICAgLSBncm91cDogImFwaXJlZ2lzdHJhdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXBwcyIKICAgIC0gZ3JvdXA6ICJhdXRoZW50aWNhdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXV0aG9yaXphdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXV0b3NjYWxpbmciCiAgICAtIGdyb3VwOiAiYmF0Y2giCiAgICAtIGdyb3VwOiAiY2VydGlmaWNhdGVzLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJleHRlbnNpb25zIgogICAgLSBncm91cDogIm1ldHJpY3MuazhzLmlvIgogICAgLSBncm91cDogIm5ldHdvcmtpbmcuazhzLmlvIgogICAgLSBncm91cDogInBvbGljeSIKICAgIC0gZ3JvdXA6ICJyYmFjLmF1dGhvcml6YXRpb24uazhzLmlvIgogICAgLSBncm91cDogInNldHRpbmdzLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJzdG9yYWdlLms4cy5pbyIKICAgIG9taXRTdGFnZXM6CiAgICAgIC0gIlJlcXVlc3RSZWNlaXZlZCIKICAjIERlZmF1bHQgbGV2ZWwgZm9yIGtub3duIEFQSXMKICAtIGxldmVsOiBSZXF1ZXN0UmVzcG9uc2UKICAgIHJlc291cmNlczoKICAgIC0gZ3JvdXA6ICIiICMgY29yZQogICAgLSBncm91cDogImFkbWlzc2lvbnJlZ2lzdHJhdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXBpZXh0ZW5zaW9ucy5rOHMuaW8iCiAgICAtIGdyb3VwOiAiYXBpcmVnaXN0cmF0aW9uLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJhcHBzIgogICAgLSBncm91cDogImF1dGhlbnRpY2F0aW9uLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJhdXRob3JpemF0aW9uLms4cy5pbyIKICAgIC0gZ3JvdXA6ICJhdXRvc2NhbGluZyIKICAgIC0gZ3JvdXA6ICJiYXRjaCIKICAgIC0gZ3JvdXA6ICJjZXJ0aWZpY2F0ZXMuazhzLmlvIgogICAgLSBncm91cDogImV4dGVuc2lvbnMiCiAgICAtIGdyb3VwOiAibWV0cmljcy5rOHMuaW8iCiAgICAtIGdyb3VwOiAibmV0d29ya2luZy5rOHMuaW8iCiAgICAtIGdyb3VwOiAicG9saWN5IgogICAgLSBncm91cDogInJiYWMuYXV0aG9yaXphdGlvbi5rOHMuaW8iCiAgICAtIGdyb3VwOiAic2V0dGluZ3MuazhzLmlvIgogICAgLSBncm91cDogInN0b3JhZ2UuazhzLmlvIgogICAgb21pdFN0YWdlczoKICAgICAgLSAiUmVxdWVzdFJlY2VpdmVkIgogICMgRGVmYXVsdCBsZXZlbCBmb3IgYWxsIG90aGVyIHJlcXVlc3RzLgogIC0gbGV2ZWw6IE1ldGFkYXRhCiAgICBvbWl0U3RhZ2VzOgogICAgICAtICJSZXF1ZXN0UmVjZWl2ZWQiCg==
+          encoding: base64
+          owner: root:root
+          path: /etc/kubernetes/audit-policy.yaml
+          permissions: "0600"
+        - content: dm0ub3ZlcmNvbW1pdF9tZW1vcnk9MQprZXJuZWwucGFuaWM9MTAKa2VybmVsLnBhbmljX29uX29vcHM9MQ==
+          encoding: base64
+          owner: root:root
+          path: /etc/sysctl.d/90-kubelet.conf
+          permissions: "0600"
+        - content: YnJfbmV0ZmlsdGVy
+          encoding: base64
+          owner: root:root
+          path: /etc/modules-load.d/k8s.conf
+          permissions: "0600"
+        - content: bmV0LmJyaWRnZS5icmlkZ2UtbmYtY2FsbC1pcDZ0YWJsZXMgPSAxCm5ldC5icmlkZ2UuYnJpZGdlLW5mLWNhbGwtaXB0YWJsZXMgPSAx
+          encoding: base64
+          owner: root:root
+          path: /etc/sysctl.d/k8s.conf
+          permissions: "0600"
+        - content: ZGViIFtzaWduZWQtYnk9L3Vzci9zaGFyZS9rZXlyaW5ncy9rdWJlcm5ldGVzLWFyY2hpdmUta2V5cmluZy5ncGddIGh0dHBzOi8vYXB0Lmt1YmVybmV0ZXMuaW8vIGt1YmVybmV0ZXMteGVuaWFsIG1haW4=
+          encoding: base64
+          owner: root:root
+          path: /etc/apt/sources.list.d/kubernetes.list
+          permissions: "0600"
+      format: cloud-config
+      joinConfiguration:
+        discovery: {}
+        nodeRegistration:
+          kubeletExtraArgs:
+            event-qps: "0"
+            feature-gates: RotateKubeletServerCertificate=true
+            protect-kernel-defaults: "true"
+            read-only-port: "0"
+            tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256
+      preKubeadmCommands:
+        - modprobe br_netfilter
+        - sysctl --system
+        - echo "1" > /proc/sys/net/ipv4/ip_forward
+        - swapoff -a
+        - sed -i '/ swap / s/^/#/' /etc/fstab
+        - apt update
+        - apt install -y containerd
+        - apt-get install -y apt-transport-https ca-certificates curl
+        - curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        - apt-get update
+        - apt-get install -y kubelet=1.21.14-00 kubeadm=1.21.14-00 kubectl=1.21.14-00
+        - apt-mark hold kubelet kubeadm kubectl
+        - echo "====> Applying kernel parameters for Kubelet"
+        - sysctl -p /etc/sysctl.d/90-kubelet.conf
+      useExperimentalRetryJoin: true

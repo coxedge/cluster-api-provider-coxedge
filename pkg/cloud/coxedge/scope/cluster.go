@@ -18,13 +18,10 @@ package scope
 
 import (
 	"context"
-
 	coxv1 "github.com/coxedge/cluster-api-provider-cox/api/v1beta1"
 	"github.com/coxedge/cluster-api-provider-cox/pkg/cloud/coxedge"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-
-	"k8s.io/klog/v2/klogr"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -50,9 +47,9 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if params.CoxCluster == nil {
 		return nil, errors.New("CoxCluster is required when creating a ClusterScope")
 	}
-	if params.Logger == nil {
-		params.Logger = klogr.New()
-	}
+	// if params.Logger == nil {
+	// 	params.Logger = klogr.New()
+	// }
 
 	helper, err := patch.NewHelper(params.CoxCluster, params.Client)
 	if err != nil {
@@ -71,7 +68,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.New("no default or cluster-specific credentials provided")
 	}
 
-	coxClient, err := coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxAPIKey, creds.CoxOrganization, nil)
+	coxClient, err := coxedge.NewClient(creds.CoxAPIBaseURL, creds.CoxService, creds.CoxEnvironment, creds.CoxAPIKey, creds.CoxOrganization, nil)
 	if err != nil {
 		return nil, errors.Errorf("error while trying to create instance of coxedge client %s", err.Error())
 	}

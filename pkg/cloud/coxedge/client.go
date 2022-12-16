@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	baseURL = "https://portal.coxedge.com/api/v1/"
+	baseURLDefault = "https://portal.coxedge.com/api/v1/"
 )
 
 var (
@@ -30,9 +30,17 @@ type Client struct {
 	organizationID string
 }
 
-func NewClient(service, environment, apiKey string, organizationID string, httpClient *http.Client) (*Client, error) {
+func NewClient(baseURL, service, environment, apiKey string, organizationID string, httpClient *http.Client) (*Client, error) {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
+	}
+
+	if baseURL == "" {
+		baseURL = baseURLDefault
+	}
+
+	if !strings.HasSuffix(baseURL, "/") {
+		baseURL += "/"
 	}
 
 	url, err := url.Parse(baseURL)

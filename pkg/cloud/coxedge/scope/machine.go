@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"strings"
 
+	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/util"
+
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
@@ -29,7 +32,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -46,6 +48,7 @@ type MachineScopeParams struct {
 	CoxCluster         *coxv1.CoxCluster
 	CoxMachine         *coxv1.CoxMachine
 	DefaultCredentials *Credentials
+	Tracker            *remote.ClusterCacheTracker
 }
 
 // NewMachineScope creates a new MachineScope from the supplied parameters.
@@ -65,9 +68,9 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, errors.New("CoxMachine is required when creating a MachineScope")
 	}
 
-	if params.Logger == nil {
-		params.Logger = klogr.New()
-	}
+	// if params.Logger == nil {
+	// 	params.Logger = klogr.New()
+	// }
 
 	helper, err := patch.NewHelper(params.CoxMachine, params.Client)
 	if err != nil {
@@ -86,7 +89,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, errors.New("no default or cluster-specific credentials provided")
 	}
 
-	coxClient, err := coxedge.NewClient(creds.CoxService, creds.CoxEnvironment, creds.CoxAPIKey, creds.CoxOrganization, nil)
+	coxClient, err := coxedge.NewClient(creds.CoxAPIBaseURL, creds.CoxService, creds.CoxEnvironment, creds.CoxAPIKey, creds.CoxOrganization, nil)
 	if err != nil {
 		return nil, errors.Errorf("error while trying to create instance of coxedge client %s", err.Error())
 	}
@@ -100,6 +103,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		CoxClient:   coxClient,
 		Logger:      params.Logger,
 		patchHelper: helper,
+		Tracker:     params.Tracker,
 	}, nil
 }
 
@@ -114,6 +118,7 @@ type MachineScope struct {
 	CoxCluster *coxv1.CoxCluster
 	CoxMachine *coxv1.CoxMachine
 	CoxClient  *coxedge.Client
+	Tracker    *remote.ClusterCacheTracker
 }
 
 // Close the MachineScope by updating the machine spec, machine status.
@@ -176,4 +181,61 @@ func (m *MachineScope) GetRawBootstrapData() (string, error) {
 	}
 
 	return string(value), nil
+}
+
+// SetNodeProviderID patches the node with the ID
+func (m *MachineScope) SetNodeProviderID() error {
+	ctx := context.TODO()
+	remoteClient, err := m.Tracker.GetClient(ctx, util.ObjectKey(m.Cluster))
+	if err != nil {
+		return err
+	}
+
+	nodeList := &corev1.NodeList{}
+	if err := remoteClient.List(ctx, nodeList); err != nil {
+		return err
+	}
+
+	mamap := make(map[string]bool)
+
+	for _, address := range m.CoxMachine.Status.Addresses {
+		if address.Type == corev1.NodeInternalIP {
+			mamap[address.Address] = true
+		}
+	}
+
+	node := &corev1.Node{}
+	nodeFound := false
+	for _, n := range nodeList.Items {
+		for _, address := range n.Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				if mamap[address.Address] {
+					nodeFound = true
+					node = n.DeepCopy()
+					break
+				}
+			}
+		}
+		if nodeFound {
+			break
+		}
+	}
+
+	if !nodeFound {
+		return nil
+	}
+
+	providerID := m.GetProviderID()
+	if node.Spec.ProviderID == providerID {
+		return nil
+	}
+
+	patchHelper, err := patch.NewHelper(node, remoteClient)
+	if err != nil {
+		return err
+	}
+
+	node.Spec.ProviderID = providerID
+
+	return patchHelper.Patch(ctx, node)
 }

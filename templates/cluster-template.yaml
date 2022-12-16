@@ -97,7 +97,6 @@ spec:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: NodeletConfigTemplate
           name: ${CLUSTER_NAME}-md-0
-      clusterName: aws-quickstart
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: CoxMachineTemplate

@@ -194,6 +194,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		Image:    loadBalancerImage,
 		Port:     fmt.Sprintf("%d", clusterPort),
 		Backends: apiserverAddresses,
+		POP:      clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
 	}
 	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
 	if err != nil {
@@ -266,10 +267,10 @@ func (r *CoxClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	err := lbClient.DeleteLoadBalancer(ctx, loadBalancerName)
 	if err != nil {
-		r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletingLoadBalancerFailed", "Faield to delete loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.ClusterName, clusterScope.Cluster.UID, err)
+		r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletingLoadBalancerFailed", "Faield to delete loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.Name, clusterScope.Cluster.UID, err)
 		return ctrl.Result{}, err
 	}
-	r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletedLoadBalancer", "Deleted loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.ClusterName, clusterScope.Cluster.UID)
+	r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletedLoadBalancer", "Deleted loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.Name, clusterScope.Cluster.UID)
 	controllerutil.RemoveFinalizer(clusterScope.CoxCluster, coxv1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
