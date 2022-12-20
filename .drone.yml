@@ -21,7 +21,7 @@ steps:
     - while ! docker info; do sleep 1; done
 
   - name: Docker Build
-    image: supporttools/kube-builder:lastest
+    image: supporttools/kube-builder:latest
     environment:
       DOCKER_USERNAME:
         from_secret: harbor_username
