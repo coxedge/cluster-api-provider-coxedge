@@ -71,13 +71,13 @@ kubectl apply -f examples/coxcluster.yaml
 
 NOTE: If you make changes to the CAPI Provider and want to test them locally, then the below steps will help you in accomplishing this.
 These are optional steps and can be ignored.
-- #### Building Image 
+- #### Building Image [OPTIONAL]
 Change `REGISTRY` and `IMAGE_NAME` according to your setup
 ```shell
 make docker-build && make docker-push
 ```
 
-- #### Cluster creation
+- #### Cluster creation [OPTIONAL]
 ```shell
 make release-manifests-clusterctl
 
