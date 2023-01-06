@@ -30,7 +30,7 @@ spec:
     name: coxedge
   controlPlaneLoadBalancer:
     pop:
-    - AMS
+    - ORF
 ---
 apiVersion: v1
 kind: Secret
@@ -149,7 +149,8 @@ spec:
       - sysctl --system
       - echo "1" > /proc/sys/net/ipv4/ip_forward
       - swapoff -a
-      - sed -i '/ swap / s/^/#/' /etc/fstab
+      - sed -i '/swap/s/^/#/' /etc/fstab
+      - echo vm.swappiness=0 | tee -a /etc/sysctl.conf && sysctl -p
       - apt update
       - apt install -y containerd
       - apt-get install -y apt-transport-https ca-certificates curl
@@ -173,7 +174,7 @@ spec:
         - instancesPerPop: "1"
           name: default
           pops:
-            - AMS
+            - ORF
       image: stackpath-edge/ubuntu-2004-focal:v202102241556
       ports:
         - protocol: TCP
@@ -229,7 +230,7 @@ spec:
         - instancesPerPop: "1"
           name: default
           pops:
-            - AMS
+            - ORF
       image: stackpath-edge/ubuntu-2004-focal:v202102241556
       ports:
         - protocol: TCP
@@ -292,7 +293,8 @@ spec:
         - sysctl --system
         - echo "1" > /proc/sys/net/ipv4/ip_forward
         - swapoff -a
-        - sed -i '/ swap / s/^/#/' /etc/fstab
+        - sed -i '/swap/s/^/#/' /etc/fstab
+        - echo vm.swappiness=0 | tee -a /etc/sysctl.conf && sysctl -p
         - apt update
         - apt install -y containerd
         - apt-get install -y apt-transport-https ca-certificates curl
