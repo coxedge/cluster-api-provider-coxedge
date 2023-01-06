@@ -73,7 +73,7 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 			},
 			{
 				Key:   EnvKeyLBBackends,
-				Value: strings.Join(payload.Backends, ","),
+				Value: strings.Join(payload.Backends, ";"),
 			},
 		},
 		Deployments: []Deployment{
@@ -113,7 +113,7 @@ func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *Lo
 	workload.EnvironmentVariable = []EnvironmentVariable{
 		{
 			Key:   EnvKeyLBBackends,
-			Value: strings.Join(payload.Backends, ","),
+			Value: strings.Join(payload.Backends, ";"),
 		},
 		{
 			Key:   EnvKeyLBPort,
@@ -181,7 +181,7 @@ func parseLoadBalancerSpecFromWorkload(workload *WorkloadData) (*LoadBalancerSpe
 	for _, kv := range workload.EnvironmentVariable {
 		switch kv.Key {
 		case EnvKeyLBBackends:
-			backends = strings.Split(kv.Value, ",")
+			backends = strings.Split(kv.Value, ";")
 		case EnvKeyLBPort:
 			port = kv.Value
 		}
