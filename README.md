@@ -64,6 +64,13 @@ kind create cluster
 clusterctl init --infrastructure coxedge
 ```
 
+- #### Cluster creation
+```shell
+kubectl apply -f examples/coxcluster.yaml
+```
+
+NOTE: If you make changes to the CAPI Provider and want to test them locally, then the below steps will help you in accomplishing this.
+These are optional steps and can be ignored.
 - #### Building Image 
 Change `REGISTRY` and `IMAGE_NAME` according to your setup
 ```shell
