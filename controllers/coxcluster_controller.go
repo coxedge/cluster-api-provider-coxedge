@@ -231,37 +231,33 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		POP:      clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
 	}
 	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
-	if err != nil {
+	existingworkerLoadBalancer, err1 := workerLbClient.GetLoadBalancer(ctx, workerLoadBalancerSpec.Name)
+	if err != nil && err1 != nil {
 		if err != coxedge.ErrWorkloadNotFound {
 			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotFoundReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
+		if err1 != coxedge.ErrWorkloadNotFound {
+			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotFoundReason, clusterv1.ConditionSeverityInfo, err.Error())
+			return ctrl.Result{}, err
+		}
 		err = lbClient.CreateLoadBalancer(ctx, &loadBalancerSpec)
+		err1 = workerLbClient.CreateLoadBalancer(ctx, &workerLoadBalancerSpec)
 		if err != nil {
 			r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatingLoadBalancerFailed", "Failed to create loadbalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID, err)
 			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
-		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
-		r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatedLoadBalancer", "Created LoadBalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID)
-		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, "Creating LoadBalancer deployment")
-		return ctrl.Result{Requeue: true}, nil
-	}
-	existingworkerLoadBalancer, err := workerLbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
-	if err != nil {
-		if err != coxedge.ErrWorkloadNotFound {
-			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotFoundReason, clusterv1.ConditionSeverityInfo, err.Error())
-			return ctrl.Result{}, err
-		}
-		err = workerLbClient.CreateLoadBalancer(ctx, &workerLoadBalancerSpec)
-		if err != nil {
+		if err1 != nil {
 			r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatingLoadBalancerFailed", "Failed to create worker loadbalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID, err)
 			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
-		log.Info("Created Workers LoadBalancer deployment", "spec", workerLoadBalancerSpec)
+		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
+		log.Info("Created worker LoadBalancer deployment", "spec", workerLoadBalancerSpec)
+		r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatedLoadBalancer", "Created LoadBalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID)
 		r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatedLoadBalancer", "Created Worker LoadBalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID)
-		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, "Creating Worker LoadBalancer deployment")
+		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, "Creating LoadBalancer deployment")
 		return ctrl.Result{Requeue: true}, nil
 	}
 
