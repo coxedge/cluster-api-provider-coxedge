@@ -226,9 +226,9 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	workerLoadBalancerSpec := coxedge.LoadBalancerSpec{
 		Name:     genWorkerLoadBalancerName(clusterScope),
 		Image:    loadBalancerImage,
-		Port:     fmt.Sprintf("%d", clusterPort),
-		Backends: apiserverAddresses,
-		POP:      clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
+		Port:     fmt.Sprintf("%d", workerLBPort),
+		Backends: workerAddresses,
+		POP:      clusterScope.CoxCluster.Spec.WorkersLoadBalancer.POP,
 	}
 	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
 	existingworkerLoadBalancer, err1 := workerLbClient.GetLoadBalancer(ctx, workerLoadBalancerSpec.Name)
