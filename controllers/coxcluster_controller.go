@@ -280,7 +280,9 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 	workerLoadBalancerSpec.Name = existingworkerLoadBalancer.Spec.Name
 	//Sort Backends Addresses before running DeepEqual, else objects will return false resulting in WorkerLB getting restarted every few seconds
+	log.Info("Is workerLoadBalancerSpec this causing a Crash")
 	sort.Strings(workerLoadBalancerSpec.Backends)
+	log.Info("Is existingworkerLoadBalancer this causing a Crash")
 	sort.Strings(existingworkerLoadBalancer.Spec.Backends)
 	if !reflect.DeepEqual(existingworkerLoadBalancer.Spec, workerLoadBalancerSpec) {
 		existingworkerLoadBalancer.Status = coxedge.LoadBalancerStatus{}
