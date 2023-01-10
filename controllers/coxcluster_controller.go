@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
 
@@ -264,6 +265,9 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 	// Ignore the name of the existing one because it might have been shortened.
 	loadBalancerSpec.Name = existingLoadBalancer.Spec.Name
+	//Sort Backends Addresses before running DeepEqual, else objects will return false resulting in LB getting restarted every few seconds in MultiMaster Mode
+	sort.Strings(loadBalancerSpec.Backends)
+	sort.Strings(existingLoadBalancer.Spec.Backends)
 	if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
 		existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
 		err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
@@ -273,7 +277,11 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}
 		log.Info("Updated LoadBalancer deployment", "old", existingLoadBalancer.Spec, "new", loadBalancerSpec)
 	}
+
 	workerLoadBalancerSpec.Name = existingworkerLoadBalancer.Spec.Name
+	//Sort Backends Addresses before running DeepEqual, else objects will return false resulting in WorkerLB getting restarted every few seconds
+	sort.Strings(workerLoadBalancerSpec.Backends)
+	sort.Strings(existingworkerLoadBalancer.Spec.Backends)
 	if !reflect.DeepEqual(existingworkerLoadBalancer.Spec, workerLoadBalancerSpec) {
 		existingworkerLoadBalancer.Status = coxedge.LoadBalancerStatus{}
 		err = workerLbClient.UpdateLoadBalancer(ctx, &workerLoadBalancerSpec)
@@ -292,13 +300,13 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}, nil
 	}
 
-	// if existingworkerLoadBalancer != nil && len(existingworkerLoadBalancer.Status.PublicIP) == 0 {
-	// 	log.Info("Worker LoadBalancer is not ready yet.")
-	// 	conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotReadyReason, clusterv1.ConditionSeverityInfo, "Worker LoadBalancer is not ready yet")
-	// 	return ctrl.Result{
-	// 		RequeueAfter: 10 * time.Second,
-	// 	}, nil
-	// }
+	if existingworkerLoadBalancer != nil && len(existingworkerLoadBalancer.Status.PublicIP) == 0 {
+		log.Info("Worker LoadBalancer is not ready yet.")
+		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotReadyReason, clusterv1.ConditionSeverityInfo, "Worker LoadBalancer is not ready yet")
+		return ctrl.Result{
+			RequeueAfter: 10 * time.Second,
+		}, nil
+	}
 
 	// Set the controlPlaneRef
 	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port)
