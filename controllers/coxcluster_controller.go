@@ -300,13 +300,13 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}, nil
 	}
 
-	if existingworkerLoadBalancer != nil && len(existingworkerLoadBalancer.Status.PublicIP) == 0 {
-		log.Info("Worker LoadBalancer is not ready yet.")
-		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotReadyReason, clusterv1.ConditionSeverityInfo, "Worker LoadBalancer is not ready yet")
-		return ctrl.Result{
-			RequeueAfter: 10 * time.Second,
-		}, nil
-	}
+	// if existingworkerLoadBalancer != nil && len(existingworkerLoadBalancer.Status.PublicIP) == 0 {
+	// 	log.Info("Worker LoadBalancer is not ready yet.")
+	// 	conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotReadyReason, clusterv1.ConditionSeverityInfo, "Worker LoadBalancer is not ready yet")
+	// 	return ctrl.Result{
+	// 		RequeueAfter: 10 * time.Second,
+	// 	}, nil
+	// }
 
 	// Set the controlPlaneRef
 	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port)
