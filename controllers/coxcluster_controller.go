@@ -47,6 +47,7 @@ import (
 
 const (
 	defaultKubeApiserverPort = 6443
+	defaultWorkerLBPort      = 80
 	defaultBackend           = "example.com:80"
 	defaultLoadBalancerImage = "erwinvaneyk/nginx-lb:latest"
 
@@ -202,17 +203,27 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	}
 
 	var clusterPort = coxCluster.Spec.ControlPlaneLoadBalancer.Port
-	if clusterPort == 0 {
-		clusterPort = defaultKubeApiserverPort
+	var clusterPorts []string
+	if len(clusterPort) == 0 {
+		clusterPorts = append(clusterPorts, string(defaultKubeApiserverPort))
+	} else {
+		for _, port := range clusterPort {
+			clusterPorts = append(clusterPorts, string(port))
+		}
 	}
 	loadBalancerImage := coxCluster.Spec.ControlPlaneLoadBalancer.Image
 	if len(loadBalancerImage) == 0 {
 		loadBalancerImage = defaultLoadBalancerImage
 	}
 
-	var workerLBPort = coxCluster.Spec.WorkersLoadBalancer.Port
-	if workerLBPort == 0 {
-		workerLBPort = 80
+	var workerLBPort = coxCluster.Spec.ControlPlaneLoadBalancer.Port
+	var workerLBPorts []string
+	if len(workerLBPort) == 0 {
+		workerLBPorts = append(workerLBPorts, string(defaultWorkerLBPort))
+	} else {
+		for _, port := range workerLBPort {
+			workerLBPorts = append(workerLBPorts, string(port))
+		}
 	}
 	// Ensure that the loadBalancer is created
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
@@ -220,14 +231,14 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	loadBalancerSpec := coxedge.LoadBalancerSpec{
 		Name:     genClusterLoadBalancerName(clusterScope),
 		Image:    loadBalancerImage,
-		Port:     fmt.Sprintf("%d", clusterPort),
+		Port:     clusterPorts,
 		Backends: apiserverAddresses,
 		POP:      clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
 	}
 	workerLoadBalancerSpec := coxedge.LoadBalancerSpec{
 		Name:     genWorkerLoadBalancerName(clusterScope),
 		Image:    loadBalancerImage,
-		Port:     fmt.Sprintf("%d", workerLBPort),
+		Port:     workerLBPorts,
 		Backends: workerAddresses,
 		POP:      clusterScope.CoxCluster.Spec.WorkersLoadBalancer.POP,
 	}
@@ -308,7 +319,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	// }
 
 	// Set the controlPlaneRef
-	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port)
+	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port[0])
 	if err != nil {
 		return ctrl.Result{}, err
 	}

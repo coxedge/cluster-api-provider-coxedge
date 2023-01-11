@@ -21,7 +21,7 @@ type LoadBalancer struct {
 
 type LoadBalancerSpec struct {
 	Name     string
-	Port     string
+	Port     []string
 	Image    string
 	Backends []string
 	POP      []string
@@ -55,21 +55,23 @@ func (l *LoadBalancerHelper) GetLoadBalancer(ctx context.Context, name string) (
 }
 
 func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *LoadBalancerSpec) error {
+	var ports []Port
+	for _, port := range payload.Port {
+		ports = append(ports, Port{
+			Protocol:   PortProtocolTCP,
+			PublicPort: port,
+		})
+	}
 	_, err := l.Client.CreateWorkload(&CreateWorkloadRequest{
 		Name:                payload.Name,
 		Type:                TypeContainer,
 		Image:               payload.Image,
 		AddAnyCastIPAddress: true,
-		Ports: []Port{
-			{
-				Protocol:   PortProtocolTCP,
-				PublicPort: payload.Port,
-			},
-		},
+		Ports:               ports,
 		EnvironmentVariables: []EnvironmentVariable{
 			{
 				Key:   EnvKeyLBPort,
-				Value: payload.Port,
+				Value: strings.Join(payload.Port, ","),
 			},
 			{
 				Key:   EnvKeyLBBackends,
@@ -106,9 +108,9 @@ func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *Lo
 	}
 
 	// TODO support updating the port (needs updates to the network policy in CoxEdge)
-	if payload.Port != existingLoadBalancerSpec.Port {
-		return errors.New("updating the LoadBalancer port is not supported")
-	}
+	// if payload.Port != existingLoadBalancerSpec.Port {
+	// 	return errors.New("updating the LoadBalancer port is not supported")
+	// }
 
 	workload.EnvironmentVariable = []EnvironmentVariable{
 		{
@@ -117,7 +119,7 @@ func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *Lo
 		},
 		{
 			Key:   EnvKeyLBPort,
-			Value: existingLoadBalancerSpec.Port,
+			Value: strings.Join(existingLoadBalancerSpec.Port, ","),
 		},
 	}
 
@@ -177,13 +179,13 @@ func parseLoadBalancerStatusFromWorkload(workload *WorkloadData, workloadInstanc
 
 func parseLoadBalancerSpecFromWorkload(workload *WorkloadData) (*LoadBalancerSpec, error) {
 	var backends []string
-	var port string
+	var port []string
 	for _, kv := range workload.EnvironmentVariable {
 		switch kv.Key {
 		case EnvKeyLBBackends:
 			backends = strings.Split(kv.Value, ";")
 		case EnvKeyLBPort:
-			port = kv.Value
+			port = strings.Split(kv.Value, ",")
 		}
 	}
 
