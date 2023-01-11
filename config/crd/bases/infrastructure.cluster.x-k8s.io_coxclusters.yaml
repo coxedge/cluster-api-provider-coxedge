@@ -165,7 +165,7 @@ spec:
                   publicIP:
                     type: string
                 type: object
-              workerLoadBalancer:
+              workersLoadBalancer:
                 properties:
                   publicIP:
                     type: string
