@@ -97,7 +97,7 @@ type CoxLoadBalancerSpec struct {
 	Image string `json:"image,omitempty"`
 
 	// +optional
-	Ports []int32 `json:"port,omitempty"`
+	Ports []string `json:"port,omitempty"`
 
 	// POP for instance
 	POP []string `json:"pop,omitempty"`

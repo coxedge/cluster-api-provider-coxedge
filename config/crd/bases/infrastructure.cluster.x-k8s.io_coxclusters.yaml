@@ -83,8 +83,7 @@ spec:
                     type: array
                   ports:
                     items:
-                      format: int32
-                      type: integer
+                      type: string
                     type: array
                 type: object
               workersLoadBalancer:
@@ -102,8 +101,7 @@ spec:
                     type: array
                   ports:
                     items:
-                      format: int32
-                      type: integer
+                      type: string
                     type: array
                 type: object
               credentials:
