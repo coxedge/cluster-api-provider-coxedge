@@ -217,9 +217,6 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	}
 
 	var workerLBPort = coxCluster.Spec.WorkersLoadBalancer.Ports
-	log.Info("Worker LB Ports")
-	log.Info("", len(workerLBPort))
-	log.Info("%d", workerLBPort[0])
 	var workerLBPorts []string
 	if len(workerLBPort) == 0 {
 		workerLBPorts = append(workerLBPorts, fmt.Sprint(defaultWorkerLBPort))
