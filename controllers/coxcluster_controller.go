@@ -189,7 +189,6 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 				continue
 			}
 			workerAddresses = append(workerAddresses, fmt.Sprintf("%s:%d", addr.Address, 80))
-			log.Info("Print workerAddresses: ", workerAddresses)
 			break
 		}
 	}
