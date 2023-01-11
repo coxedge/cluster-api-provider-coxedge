@@ -205,7 +205,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	var clusterPort = coxCluster.Spec.ControlPlaneLoadBalancer.Port
 	var clusterPorts []string
 	if len(clusterPort) == 0 {
-		clusterPorts = append(clusterPorts, string(defaultKubeApiserverPort))
+		clusterPorts = append(clusterPorts, fmt.Sprint(defaultKubeApiserverPort))
 	} else {
 		for _, port := range clusterPort {
 			clusterPorts = append(clusterPorts, string(port))
@@ -219,7 +219,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	var workerLBPort = coxCluster.Spec.ControlPlaneLoadBalancer.Port
 	var workerLBPorts []string
 	if len(workerLBPort) == 0 {
-		workerLBPorts = append(workerLBPorts, string(defaultWorkerLBPort))
+		workerLBPorts = append(workerLBPorts, fmt.Sprint(defaultWorkerLBPort))
 	} else {
 		for _, port := range workerLBPort {
 			workerLBPorts = append(workerLBPorts, string(port))
