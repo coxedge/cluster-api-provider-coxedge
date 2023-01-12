@@ -189,7 +189,9 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 			if addr.Type != corev1.NodeExternalIP {
 				continue
 			}
-			workerAddresses = append(workerAddresses, fmt.Sprintf("%s:%d", addr.Address, 80))
+			for _, port := range coxCluster.Spec.WorkersLoadBalancer.Ports {
+				workerAddresses = append(workerAddresses, fmt.Sprintf("%s:%s", addr.Address, port))
+			}
 			break
 		}
 	}
@@ -216,15 +218,9 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		loadBalancerImage = defaultLoadBalancerImage
 	}
 
-	var workerLBPort = coxCluster.Spec.WorkersLoadBalancer.Ports
 	var workerLBPorts []string
-	if len(workerLBPort) == 0 {
-		workerLBPorts = append(workerLBPorts, fmt.Sprint(defaultWorkerLBPort))
-	} else {
-		for _, port := range workerLBPort {
-			workerLBPorts = append(workerLBPorts, string(port))
-		}
-	}
+	workerLBPorts = append(workerLBPorts, fmt.Sprint(defaultWorkerLBPort))
+
 	// Ensure that the loadBalancer is created
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	workerLbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
