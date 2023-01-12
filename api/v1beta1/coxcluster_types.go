@@ -101,6 +101,9 @@ type CoxLoadBalancerSpec struct {
 
 	// POP for instance
 	POP []string `json:"pop,omitempty"`
+
+	// Number of Instances to be launched
+	Size string `json:"size,omitempty"`
 }
 
 type CoxLoadBalancerStatus struct {

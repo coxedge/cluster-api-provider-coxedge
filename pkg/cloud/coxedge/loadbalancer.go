@@ -20,11 +20,12 @@ type LoadBalancer struct {
 }
 
 type LoadBalancerSpec struct {
-	Name     string
-	Port     []string
-	Image    string
-	Backends []string
-	POP      []string
+	Name      string
+	Port      []string
+	Image     string
+	Backends  []string
+	POP       []string
+	Instances string
 }
 
 type LoadBalancerStatus struct {
@@ -82,7 +83,7 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 			{
 				Name:            "default",
 				Pops:            payload.POP,
-				InstancesPerPop: "1",
+				InstancesPerPop: payload.Instances,
 			},
 		},
 		Specs: SpecSP1,

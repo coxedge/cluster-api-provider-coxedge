@@ -221,22 +221,34 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	var workerLBPorts []string
 	workerLBPorts = append(workerLBPorts, fmt.Sprint(defaultWorkerLBPort))
 
+	var clusterLBSize = clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.Size
+	if len(clusterLBSize) == 0 {
+		clusterLBSize = "1"
+	}
+
+	var workersLBSize = clusterScope.CoxCluster.Spec.WorkersLoadBalancer.Size
+	if len(workersLBSize) == 0 {
+		workersLBSize = "1"
+	}
+
 	// Ensure that the loadBalancer is created
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	workerLbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	loadBalancerSpec := coxedge.LoadBalancerSpec{
-		Name:     genClusterLoadBalancerName(clusterScope),
-		Image:    loadBalancerImage,
-		Port:     clusterPorts,
-		Backends: apiserverAddresses,
-		POP:      clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
+		Name:      genClusterLoadBalancerName(clusterScope),
+		Image:     loadBalancerImage,
+		Port:      clusterPorts,
+		Backends:  apiserverAddresses,
+		POP:       clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
+		Instances: clusterLBSize,
 	}
 	workerLoadBalancerSpec := coxedge.LoadBalancerSpec{
-		Name:     genWorkerLoadBalancerName(clusterScope),
-		Image:    loadBalancerImage,
-		Port:     workerLBPorts,
-		Backends: workerAddresses,
-		POP:      clusterScope.CoxCluster.Spec.WorkersLoadBalancer.POP,
+		Name:      genWorkerLoadBalancerName(clusterScope),
+		Image:     loadBalancerImage,
+		Port:      workerLBPorts,
+		Backends:  workerAddresses,
+		POP:       clusterScope.CoxCluster.Spec.WorkersLoadBalancer.POP,
+		Instances: workersLBSize,
 	}
 	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
 	existingworkerLoadBalancer, err1 := workerLbClient.GetLoadBalancer(ctx, workerLoadBalancerSpec.Name)
