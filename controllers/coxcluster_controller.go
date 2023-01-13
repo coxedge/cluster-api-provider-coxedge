@@ -286,7 +286,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	//Sort Backends Addresses before running DeepEqual, else objects will return false resulting in LB getting restarted every few seconds in MultiMaster Mode
 	sort.Strings(loadBalancerSpec.Backends)
 	sort.Strings(existingLoadBalancer.Spec.Backends)
-	if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
+	if !reflect.DeepEqual(existingLoadBalancer.Spec.Backends, loadBalancerSpec.Backends) {
 		existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
 		err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
 		if err != nil {
@@ -300,7 +300,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	//Sort Backends Addresses before running DeepEqual, else objects will return false resulting in WorkerLB getting restarted every few seconds
 	sort.Strings(workerLoadBalancerSpec.Backends)
 	sort.Strings(existingworkerLoadBalancer.Spec.Backends)
-	if !reflect.DeepEqual(existingworkerLoadBalancer.Spec, workerLoadBalancerSpec) {
+	if !reflect.DeepEqual(existingworkerLoadBalancer.Spec.Backends, workerLoadBalancerSpec.Backends) {
 		existingworkerLoadBalancer.Status = coxedge.LoadBalancerStatus{}
 		err = workerLbClient.UpdateLoadBalancer(ctx, &workerLoadBalancerSpec)
 		if err != nil {
