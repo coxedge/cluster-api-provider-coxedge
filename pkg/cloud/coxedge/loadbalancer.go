@@ -157,7 +157,12 @@ func parseLoadBalancerFromWorkload(workload *WorkloadData, workloadInstances []I
 	if err != nil {
 		return nil, err
 	}
-
+	var instanceCount = 0
+	for _, inst := range workloadInstances {
+		if inst.Status == "RUNNING" {
+			instanceCount += 1
+		}
+	}
 	return &LoadBalancer{
 		Spec:   *spec,
 		Status: *status,
