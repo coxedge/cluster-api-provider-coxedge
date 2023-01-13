@@ -163,6 +163,7 @@ func parseLoadBalancerFromWorkload(workload *WorkloadData, workloadInstances []I
 			instanceCount += 1
 		}
 	}
+	spec.Instances = fmt.Sprint(instanceCount)
 	return &LoadBalancer{
 		Spec:   *spec,
 		Status: *status,
