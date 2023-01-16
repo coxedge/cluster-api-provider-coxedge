@@ -48,7 +48,7 @@ import (
 const (
 	defaultKubeApiserverPort = 6443
 	defaultWorkerLBPort      = 80
-	defaultBackend           = "example.com:80"
+	defaultBackend           = "example.com:1"
 	defaultLoadBalancerImage = "erwinvaneyk/nginx-lb:latest"
 
 	CoxClusterReadyCondition clusterv1.ConditionType = "CoxClusterReady"
@@ -300,7 +300,6 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	//Sort Backends Addresses before running DeepEqual, else objects will return false resulting in WorkerLB getting restarted every few seconds
 	sort.Strings(workerLoadBalancerSpec.Backends)
 	sort.Strings(existingworkerLoadBalancer.Spec.Backends)
-	log.Info("Check Worker LoadBalancer deployment", "old", existingworkerLoadBalancer.Spec, "new", workerLoadBalancerSpec)
 	if !reflect.DeepEqual(existingworkerLoadBalancer.Spec.Backends, workerLoadBalancerSpec.Backends) {
 		existingworkerLoadBalancer.Status = coxedge.LoadBalancerStatus{}
 		err = workerLbClient.UpdateLoadBalancer(ctx, &workerLoadBalancerSpec)
