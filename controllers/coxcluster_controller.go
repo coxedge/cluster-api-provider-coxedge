@@ -48,7 +48,7 @@ import (
 const (
 	defaultKubeApiserverPort = 6443
 	defaultWorkerLBPort      = 80
-	defaultBackend           = "example.com:1"
+	defaultBackend           = "example.com:80"
 	defaultLoadBalancerImage = "erwinvaneyk/nginx-lb:latest"
 
 	CoxClusterReadyCondition clusterv1.ConditionType = "CoxClusterReady"
@@ -185,13 +185,19 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 			continue
 		}
 
+		workerLBSpecPorts := coxCluster.Spec.WorkersLoadBalancer.Ports
 		for _, addr := range coxMachine.Status.Addresses {
 			if addr.Type != corev1.NodeExternalIP {
 				continue
 			}
-			for _, port := range coxCluster.Spec.WorkersLoadBalancer.Ports {
-				workerAddresses = append(workerAddresses, fmt.Sprintf("%s:%s", addr.Address, port))
+			if len(workerLBSpecPorts) == 0 {
+				workerAddresses = append(workerAddresses, fmt.Sprintf("%s:%d", addr.Address, defaultWorkerLBPort))
+			} else {
+				for _, port := range workerLBSpecPorts {
+					workerAddresses = append(workerAddresses, fmt.Sprintf("%s:%s", addr.Address, port))
+				}
 			}
+
 			break
 		}
 	}
