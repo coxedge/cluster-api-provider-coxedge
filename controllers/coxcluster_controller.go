@@ -187,7 +187,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 		workerLBSpecPorts := coxCluster.Spec.WorkersLoadBalancer.Ports
 		for _, addr := range coxMachine.Status.Addresses {
-			if addr.Type != corev1.NodeExternalIP {
+			if addr.Type != corev1.NodeInternalIP {
 				continue
 			}
 			if len(workerLBSpecPorts) == 0 {
