@@ -41,6 +41,7 @@ data:
   typha_service_name: "none"
   # Configure the backend to use.
   calico_backend: "vxlan"
+
   # Configure the MTU to use for workload interfaces and tunnels.
   # By default, MTU is auto-detected, and explicitly setting this field should not be required.
   # You can override auto-detection by providing a non-zero value.
@@ -877,6 +878,11 @@ spec:
                   node appears to use the IP of the ingress node; this requires a
                   permissive L2 network.  [Default: Tunnel]'
                 type: string
+              bpfHostConntrackBypass:
+                description: 'BPFHostConntrackBypass Controls whether to bypass Linux
+                  conntrack in BPF mode for workloads and services. [Default: true
+                  - bypass Linux conntrack]'
+                type: boolean
               bpfKubeProxyEndpointSlicesEnabled:
                 description: BPFKubeProxyEndpointSlicesEnabled in BPF mode, controls
                   whether Felix's embedded kube-proxy accepts EndpointSlices or not.
@@ -1409,8 +1415,8 @@ spec:
                 type: boolean
               vxlanEnabled:
                 description: 'VXLANEnabled overrides whether Felix should create the
-                  VXLAN tunnel device for VXLAN networking. Optional as Felix determines
-                  this based on the existing IP pools. [Default: nil (unset)]'
+                  VXLAN tunnel device for IPv4 VXLAN networking. Optional as Felix
+                  determines this based on the existing IP pools. [Default: nil (unset)]'
                 type: boolean
               vxlanMTU:
                 description: 'VXLANMTU is the MTU to set on the IPv4 VXLAN tunnel
@@ -2836,7 +2842,7 @@ spec:
                   for internal use only.'
                 type: boolean
               natOutgoing:
-                description: When nat-outgoing is true, packets sent from Calico networked
+                description: When natOutgoing is true, packets sent from Calico networked
                   containers in this pool to destinations outside of this pool will
                   be masqueraded.
                 type: boolean
@@ -4384,7 +4390,7 @@ spec:
         # It can be deleted if this is a fresh installation, or if you have already
         # upgraded to use calico-ipam.
         - name: upgrade-ipam
-          image: gcr.io/spectro-images-public/calico/cni:v3.24.1
+          image: docker.io/calico/cni:v3.24.5
           imagePullPolicy: IfNotPresent
           command: ["/opt/cni/bin/calico-ipam", "-upgrade"]
           envFrom:
@@ -4412,7 +4418,7 @@ spec:
         # This container installs the CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: gcr.io/spectro-images-public/calico/cni:v3.24.1
+          image: docker.io/calico/cni:v3.24.5
           imagePullPolicy: IfNotPresent
           command: ["/opt/cni/bin/install"]
           envFrom:
@@ -4455,7 +4461,7 @@ spec:
         # i.e. bpf at /sys/fs/bpf and cgroup2 at /run/calico/cgroup. Calico-node initialisation is executed
         # in best effort fashion, i.e. no failure for errors, to not disrupt pod creation in iptable mode.
         - name: "mount-bpffs"
-          image: gcr.io/spectro-images-public/calico/node:v3.24.1
+          image: docker.io/calico/node:v3.24.5
           imagePullPolicy: IfNotPresent
           command: ["calico-node", "-init", "-best-effort"]
           volumeMounts:
@@ -4481,7 +4487,7 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: gcr.io/spectro-images-public/calico/node:v3.24.1
+          image: docker.io/calico/node:v3.24.5
           imagePullPolicy: IfNotPresent
           envFrom:
           - configMapRef:
@@ -4512,15 +4518,35 @@ spec:
             # Auto-detect the BGP IP address.
             - name: IP
               value: "autodetect"
-            # Encapsulation type & Mode
-            - name: "CALICO_IPV4POOL_VXLAN"
-              value: "Always"      
+            # Enable IPIP
+            - name: CALICO_IPV4POOL_IPIP
+              value: "Never"
+            # Enable or Disable VXLAN on the default IP pool.
+            - name: CALICO_IPV4POOL_VXLAN
+              value: "Always"
+            # Enable or Disable VXLAN on the default IPv6 IP pool.
+            - name: CALICO_IPV4POOL_NODE_SELECTOR
+              value: all()
+            - name: CALICO_IPV6POOL_VXLAN
+              value: "Never"
+            # Set MTU for tunnel device used if ipip is enabled
+            - name: FELIX_IPINIPMTU
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: veth_mtu
             # Set MTU for the VXLAN tunnel device.
             - name: FELIX_VXLANMTU
               valueFrom:
                 configMapKeyRef:
                   name: calico-config
-                  key: veth_mtu      
+                  key: veth_mtu
+            # Set MTU for the Wireguard tunnel device.
+            - name: FELIX_WIREGUARDMTU
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: veth_mtu
             # The default IPv4 pool to create on startup if none exists. Pod IPs will be
             # chosen from this range. Changing this value after installation will have
             # no effect. This should fall within `--cluster-cidr`.
@@ -4537,7 +4563,6 @@ spec:
               value: "false"
             - name: FELIX_HEALTHENABLED
               value: "true"
-            # Additional env variables defined in pack values
           securityContext:
             privileged: true
           resources:
@@ -4679,7 +4704,7 @@ spec:
       priorityClassName: system-cluster-critical
       containers:
         - name: calico-kube-controllers
-          image: gcr.io/spectro-images-public/calico/kube-controllers:v3.24.1
+          image: docker.io/calico/kube-controllers:v3.24.5
           imagePullPolicy: IfNotPresent
           env:
             # Choose which controllers to run.
@@ -4687,7 +4712,6 @@ spec:
               value: node
             - name: DATASTORE_TYPE
               value: kubernetes
-            # Additional env variables defined in pack values
           livenessProbe:
             exec:
               command:
@@ -4703,4 +4727,3 @@ spec:
               - /usr/bin/check-status
               - -r
             periodSeconds: 10
-
