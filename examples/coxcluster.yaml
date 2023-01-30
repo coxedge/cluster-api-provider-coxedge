@@ -31,14 +31,11 @@ spec:
   controlPlaneLoadBalancer:
     pop:
     - ORF
-    size: "2"
+    size: "1"
   workersLoadBalancer:
     pop:
     - ORF
-    ports:
-    - 80
-    - 443
-    size: "2"
+    size: "1"
 ---
 apiVersion: v1
 kind: Secret
