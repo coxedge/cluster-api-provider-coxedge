@@ -81,9 +81,32 @@ spec:
                     items:
                       type: string
                     type: array
-                  port:
-                    format: int32
-                    type: integer
+                  ports:
+                    items:
+                      type: string
+                    type: array
+                  size:
+                    type: string
+                type: object
+              workersLoadBalancer:
+                description: WorkerLoadBalancer is optional configuration for
+                  customizing workers access behavior.
+                properties:
+                  image:
+                    type: string
+                  name:
+                    type: string
+                  pop:
+                    description: POP for instance
+                    items:
+                      type: string
+                    type: array
+                  ports:
+                    items:
+                      type: string
+                    type: array
+                  size:
+                    type: string
                 type: object
               credentials:
                 description: Credentials is a reference to an identity to be used
@@ -144,6 +167,11 @@ spec:
                   type: object
                 type: array
               controlPlaneLoadBalancer:
+                properties:
+                  publicIP:
+                    type: string
+                type: object
+              workersLoadBalancer:
                 properties:
                   publicIP:
                     type: string

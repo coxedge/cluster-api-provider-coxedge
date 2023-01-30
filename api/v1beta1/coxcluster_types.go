@@ -44,6 +44,8 @@ type CoxClusterSpec struct {
 	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior.
 	// +optional
 	ControlPlaneLoadBalancer CoxLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
+
+	WorkersLoadBalancer CoxLoadBalancerSpec `json:"workersLoadBalancer,omitempty"`
 }
 
 // CoxClusterStatus defines the observed state of CoxCluster
@@ -58,6 +60,8 @@ type CoxClusterStatus struct {
 
 	// +optional
 	ControlPlaneLoadBalancer CoxLoadBalancerStatus `json:"controlPlaneLoadBalancer,omitempty"`
+
+	WorkersLoadBalancer CoxLoadBalancerStatus `json:"workersLoadBalancer,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -93,10 +97,13 @@ type CoxLoadBalancerSpec struct {
 	Image string `json:"image,omitempty"`
 
 	// +optional
-	Port int32 `json:"port,omitempty"`
+	Ports []string `json:"ports,omitempty"`
 
 	// POP for instance
 	POP []string `json:"pop,omitempty"`
+
+	// Number of Instances to be launched
+	Size string `json:"size,omitempty"`
 }
 
 type CoxLoadBalancerStatus struct {

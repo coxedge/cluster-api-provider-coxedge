@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
 
@@ -46,6 +47,7 @@ import (
 
 const (
 	defaultKubeApiserverPort = 6443
+	defaultWorkerLBPort      = 80
 	defaultBackend           = "example.com:80"
 	defaultLoadBalancerImage = "erwinvaneyk/nginx-lb:latest"
 
@@ -150,6 +152,7 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 	// Hacky way to retrieve the control plane endpoints from the machines
 	var apiserverAddresses []string
+	var workerAddresses []string
 	coxMachines := &coxv1.CoxMachineList{}
 	err := r.Client.List(ctx, coxMachines)
 	if err != nil {
@@ -173,49 +176,123 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 			break
 		}
 	}
+	for _, coxMachine := range coxMachines.Items {
+		if coxMachine.Labels[clusterv1.ClusterLabelName] != clusterScope.Name() {
+			continue
+		}
+
+		if _, ok := coxMachine.Labels[clusterv1.MachineDeploymentLabelName]; !ok {
+			continue
+		}
+
+		workerLBSpecPorts := coxCluster.Spec.WorkersLoadBalancer.Ports
+		for _, addr := range coxMachine.Status.Addresses {
+			if addr.Type != corev1.NodeInternalIP {
+				continue
+			}
+			if len(workerLBSpecPorts) == 0 {
+				workerAddresses = append(workerAddresses, fmt.Sprintf("%s:%d", addr.Address, defaultWorkerLBPort))
+			} else {
+				for _, port := range workerLBSpecPorts {
+					workerAddresses = append(workerAddresses, fmt.Sprintf("%s:%s", addr.Address, port))
+				}
+			}
+
+			break
+		}
+	}
 	if len(apiserverAddresses) == 0 {
 		// Needs to be set to some value
 		apiserverAddresses = []string{defaultBackend}
 	}
+	if len(workerAddresses) == 0 {
+		// Needs to be set to some value
+		workerAddresses = []string{defaultBackend}
+	}
 
-	var clusterPort = coxCluster.Spec.ControlPlaneLoadBalancer.Port
-	if clusterPort == 0 {
-		clusterPort = defaultKubeApiserverPort
+	var clusterPort = coxCluster.Spec.ControlPlaneLoadBalancer.Ports
+	var clusterPorts []string
+	if len(clusterPort) == 0 {
+		clusterPorts = append(clusterPorts, fmt.Sprint(defaultKubeApiserverPort))
+	} else {
+		for _, port := range clusterPort {
+			clusterPorts = append(clusterPorts, string(port))
+		}
 	}
 	loadBalancerImage := coxCluster.Spec.ControlPlaneLoadBalancer.Image
 	if len(loadBalancerImage) == 0 {
 		loadBalancerImage = defaultLoadBalancerImage
 	}
 
+	var workerLBPorts []string
+	workerLBPorts = append(workerLBPorts, fmt.Sprint(defaultWorkerLBPort))
+
+	var clusterLBSize = clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.Size
+	if len(clusterLBSize) == 0 {
+		clusterLBSize = "1"
+	}
+
+	var workersLBSize = clusterScope.CoxCluster.Spec.WorkersLoadBalancer.Size
+	if len(workersLBSize) == 0 {
+		workersLBSize = "1"
+	}
+
 	// Ensure that the loadBalancer is created
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
+	workerLbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	loadBalancerSpec := coxedge.LoadBalancerSpec{
-		Name:     genClusterLoadBalancerName(clusterScope),
-		Image:    loadBalancerImage,
-		Port:     fmt.Sprintf("%d", clusterPort),
-		Backends: apiserverAddresses,
-		POP:      clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
+		Name:      genClusterLoadBalancerName(clusterScope),
+		Image:     loadBalancerImage,
+		Port:      clusterPorts,
+		Backends:  apiserverAddresses,
+		POP:       clusterScope.CoxCluster.Spec.ControlPlaneLoadBalancer.POP,
+		Instances: clusterLBSize,
+	}
+	workerLoadBalancerSpec := coxedge.LoadBalancerSpec{
+		Name:      genWorkerLoadBalancerName(clusterScope),
+		Image:     loadBalancerImage,
+		Port:      workerLBPorts,
+		Backends:  workerAddresses,
+		POP:       clusterScope.CoxCluster.Spec.WorkersLoadBalancer.POP,
+		Instances: workersLBSize,
 	}
 	existingLoadBalancer, err := lbClient.GetLoadBalancer(ctx, loadBalancerSpec.Name)
-	if err != nil {
+	existingworkerLoadBalancer, err1 := workerLbClient.GetLoadBalancer(ctx, workerLoadBalancerSpec.Name)
+	if err != nil && err1 != nil {
 		if err != coxedge.ErrWorkloadNotFound {
 			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotFoundReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
+		if err1 != coxedge.ErrWorkloadNotFound {
+			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotFoundReason, clusterv1.ConditionSeverityInfo, err.Error())
+			return ctrl.Result{}, err
+		}
 		err = lbClient.CreateLoadBalancer(ctx, &loadBalancerSpec)
+		err1 = workerLbClient.CreateLoadBalancer(ctx, &workerLoadBalancerSpec)
 		if err != nil {
 			r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatingLoadBalancerFailed", "Failed to create loadbalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID, err)
 			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
 			return ctrl.Result{}, err
 		}
+		if err1 != nil {
+			r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatingLoadBalancerFailed", "Failed to create worker loadbalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID, err)
+			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
+			return ctrl.Result{}, err
+		}
 		log.Info("Created LoadBalancer deployment", "spec", loadBalancerSpec)
+		log.Info("Created worker LoadBalancer deployment", "spec", workerLoadBalancerSpec)
 		r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatedLoadBalancer", "Created LoadBalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID)
+		r.Recorder.Eventf(coxCluster, corev1.EventTypeNormal, "CreatedLoadBalancer", "Created Worker LoadBalancer for cluster '%s`:`%s`", coxCluster.Name, coxCluster.UID)
 		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerCreateFailedReason, clusterv1.ConditionSeverityInfo, "Creating LoadBalancer deployment")
 		return ctrl.Result{Requeue: true}, nil
 	}
+
 	// Ignore the name of the existing one because it might have been shortened.
 	loadBalancerSpec.Name = existingLoadBalancer.Spec.Name
-	if !reflect.DeepEqual(existingLoadBalancer.Spec, loadBalancerSpec) {
+	//Sort Backends Addresses before running DeepEqual, else objects will return false resulting in LB getting restarted every few seconds in MultiMaster Mode
+	sort.Strings(loadBalancerSpec.Backends)
+	sort.Strings(existingLoadBalancer.Spec.Backends)
+	if !reflect.DeepEqual(existingLoadBalancer.Spec.Backends, loadBalancerSpec.Backends) {
 		existingLoadBalancer.Status = coxedge.LoadBalancerStatus{}
 		err = lbClient.UpdateLoadBalancer(ctx, &loadBalancerSpec)
 		if err != nil {
@@ -223,6 +300,20 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 			return ctrl.Result{}, err
 		}
 		log.Info("Updated LoadBalancer deployment", "old", existingLoadBalancer.Spec, "new", loadBalancerSpec)
+	}
+
+	workerLoadBalancerSpec.Name = existingworkerLoadBalancer.Spec.Name
+	//Sort Backends Addresses before running DeepEqual, else objects will return false resulting in WorkerLB getting restarted every few seconds
+	sort.Strings(workerLoadBalancerSpec.Backends)
+	sort.Strings(existingworkerLoadBalancer.Spec.Backends)
+	if !reflect.DeepEqual(existingworkerLoadBalancer.Spec.Backends, workerLoadBalancerSpec.Backends) {
+		existingworkerLoadBalancer.Status = coxedge.LoadBalancerStatus{}
+		err = workerLbClient.UpdateLoadBalancer(ctx, &workerLoadBalancerSpec)
+		if err != nil {
+			conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerUpdateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())
+			return ctrl.Result{}, err
+		}
+		log.Info("Updated Worker LoadBalancer deployment", "old", existingworkerLoadBalancer.Spec, "new", workerLoadBalancerSpec)
 	}
 
 	if existingLoadBalancer != nil && len(existingLoadBalancer.Status.PublicIP) == 0 {
@@ -233,8 +324,16 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}, nil
 	}
 
+	// if existingworkerLoadBalancer != nil && len(existingworkerLoadBalancer.Status.PublicIP) == 0 {
+	// 	log.Info("Worker LoadBalancer is not ready yet.")
+	// 	conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerNotReadyReason, clusterv1.ConditionSeverityInfo, "Worker LoadBalancer is not ready yet")
+	// 	return ctrl.Result{
+	// 		RequeueAfter: 10 * time.Second,
+	// 	}, nil
+	// }
+
 	// Set the controlPlaneRef
-	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port)
+	port, err := strconv.Atoi(existingLoadBalancer.Spec.Port[0])
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -254,6 +353,14 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}, nil
 	}
 
+	if workerAddresses[0] == defaultBackend {
+		log.Info("Worker LoadBalancer does not yet have a valid worker ip address assigned")
+		conditions.MarkFalse(clusterScope.Cluster, CoxClusterReadyCondition, LoadBalancerInvalidBackendReason, clusterv1.ConditionSeverityInfo, "Worker LoadBalancer does not yet have a valid worker ip address assigned.")
+		return ctrl.Result{
+			RequeueAfter: 10 * time.Second,
+		}, nil
+	}
+
 	log.Info("Cluster reconciled.")
 	conditions.MarkTrue(clusterScope.Cluster, CoxClusterReadyCondition)
 	return ctrl.Result{
@@ -264,13 +371,20 @@ func (r *CoxClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 func (r *CoxClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
 	loadBalancerName := genClusterLoadBalancerName(clusterScope)
+	workerLoadBalancerName := genWorkerLoadBalancerName(clusterScope)
 	lbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
+	workerLbClient := coxedge.NewLoadBalancerHelper(clusterScope.CoxClient)
 	err := lbClient.DeleteLoadBalancer(ctx, loadBalancerName)
+	err1 := workerLbClient.DeleteLoadBalancer(ctx, workerLoadBalancerName)
 	if err != nil {
-		r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletingLoadBalancerFailed", "Faield to delete loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.Name, clusterScope.Cluster.UID, err)
+		r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletingLoadBalancerFailed", "Failed to delete loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.Name, clusterScope.Cluster.UID, err)
 		return ctrl.Result{}, err
 	}
-	r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletedLoadBalancer", "Deleted loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.Name, clusterScope.Cluster.UID)
+	if err1 != nil {
+		r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletingLoadBalancerFailed", "Failed to delete worker loadbalancer for cluster '%s`:`%s`", clusterScope.Cluster.Name, clusterScope.Cluster.UID, err)
+		return ctrl.Result{}, err
+	}
+	r.Recorder.Eventf(clusterScope.Cluster, corev1.EventTypeNormal, "DeletedLoadBalancer", "Deleted control plane and worker loadbalancers for cluster '%s`:`%s`", clusterScope.Cluster.Name, clusterScope.Cluster.UID)
 	controllerutil.RemoveFinalizer(clusterScope.CoxCluster, coxv1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
@@ -303,4 +417,12 @@ func genClusterLoadBalancerName(scope *scope.ClusterScope) string {
 		name = scope.Name()
 	}
 	return fmt.Sprintf("lb-%s", name)
+}
+
+func genWorkerLoadBalancerName(scope *scope.ClusterScope) string {
+	name := scope.CoxCluster.Spec.ControlPlaneLoadBalancer.Name
+	if len(name) == 0 {
+		name = scope.Name()
+	}
+	return fmt.Sprintf("lbworker-%s", name)
 }
