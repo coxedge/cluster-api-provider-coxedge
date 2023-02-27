@@ -22,9 +22,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	"strings"
 	"time"
+
+	"sigs.k8s.io/cluster-api/controllers/remote"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -244,6 +245,15 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 					PublicPortDesc: port.PublicPortDesc,
 				}
 				data.Ports = append(data.Ports, p)
+			}
+
+			data.PersistentStorages = []coxedge.PersistentStorage{}
+			for _, storage := range machineScope.CoxMachine.Spec.PersistentStorages {
+				s := coxedge.PersistentStorage{
+					Path: storage.Path,
+					Size: storage.Size,
+				}
+				data.PersistentStorages = append(data.PersistentStorages, s)
 			}
 
 			data.Deployments = []coxedge.Deployment{}

@@ -191,6 +191,11 @@ spec:
           pops:
             - ORF
       image: stackpath-edge/ubuntu-2004-focal:v202102241556
+      persistentStorages:
+        - path: "/var/lib/mnt1"
+          size: "10"
+        - path: "/var/lib/mnt2"
+          size: "10"
       ports:
         - protocol: TCP
           publicPort: "22"
@@ -247,6 +252,11 @@ spec:
           pops:
             - ORF
       image: stackpath-edge/ubuntu-2004-focal:v202102241556
+      persistentStorages:
+        - path: "/var/lib/mnt1"
+          size: "10"
+        - path: "/var/lib/mnt2"
+          size: "10"
       ports:
         - protocol: TCP
           publicPort: "22"
