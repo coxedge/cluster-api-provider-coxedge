@@ -402,7 +402,7 @@ func (r *CoxClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	// Add a watch on clusterv1.Cluster object for unpause notifications.
 	if err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(coxv1.GroupVersion.WithKind("CoxCluster"))),
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, coxv1.GroupVersion.WithKind("CoxCluster"), mgr.GetClient(), &coxv1.CoxCluster{})),
 		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
