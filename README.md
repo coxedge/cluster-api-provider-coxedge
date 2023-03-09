@@ -49,7 +49,12 @@ stringData:
       sshAuthorizedKeys:
         - # Please fill in your ssh key as this is a required field.
 ```            
-
+- Ensure your nodes persistent volumes are created with appropriate size and mount path in in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file at lines [194](examples/coxcluster.yaml#L194) through [196](examples/coxcluster.yaml#L196) for master nodes and [255](examples/coxcluster.yaml#L255) through [257](examples/coxcluster.yaml#L257) for workers. Note max 7 volumes can be created with max size of 1000GB each.
+```yaml
+      persistentStorages:
+        - path: "/var/lib/mnt1"
+          size: "10"
+````
 ## Installation
 
 ### For Development
