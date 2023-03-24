@@ -85,8 +85,8 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 				Pops:               payload.POP,
 				EnableAutoScaling:  true,
 				CPUUtilization:     50,
-				MinInstancesPerPop: 1,
-				MaxInstancesPerPop: 3,
+				MinInstancesPerPop: "1",
+				MaxInstancesPerPop: "3",
 			},
 		},
 		Specs: SpecSP1,
@@ -126,18 +126,6 @@ func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *Lo
 			Value: strings.Join(existingLoadBalancerSpec.Port, ","),
 		},
 	}
-
-	workload.Deployments = []Deployment{
-		{
-			Name:               "default",
-			Pops:               payload.POP,
-			EnableAutoScaling:  true,
-			CPUUtilization:     50,
-			MinInstancesPerPop: 1,
-			MaxInstancesPerPop: 3,
-		},
-	}
-
 	_, err = l.Client.UpdateWorkload(workload.ID, *workload)
 	if err != nil {
 		return fmt.Errorf("failed to update loadBalancer: %w", err)

@@ -94,10 +94,10 @@ type Deployment struct {
 	CPUUtilization int `json:"cpuUtilization,omitempty"`
 
 	// +optional
-	MinInstancesPerPop int `json:"minInstancesPerPop,omitempty"`
+	MinInstancesPerPop string `json:"minInstancesPerPop,omitempty"`
 
 	// +optional
-	MaxInstancesPerPop int `json:"maxInstancesPerPop,omitempty"`
+	MaxInstancesPerPop string `json:"maxInstancesPerPop,omitempty"`
 }
 
 // Port defines instance network policies

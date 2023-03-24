@@ -69,9 +69,9 @@ spec:
                       description: number of instances per each PoP defined
                       type: string
                     maxInstancesPerPop:
-                      type: integer
+                      type: string
                     minInstancesPerPop:
-                      type: integer
+                      type: string
                     name:
                       description: Name of the deployment instance
                       type: string
