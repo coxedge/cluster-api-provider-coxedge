@@ -127,6 +127,17 @@ func (l *LoadBalancerHelper) UpdateLoadBalancer(ctx context.Context, payload *Lo
 		},
 	}
 
+	workload.Deployments = []Deployment{
+		{
+			Name:               "default",
+			Pops:               payload.POP,
+			EnableAutoScaling:  true,
+			CPUUtilization:     50,
+			MinInstancesPerPop: 1,
+			MaxInstancesPerPop: 3,
+		},
+	}
+
 	_, err = l.Client.UpdateWorkload(workload.ID, *workload)
 	if err != nil {
 		return fmt.Errorf("failed to update loadBalancer: %w", err)
