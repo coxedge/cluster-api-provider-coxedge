@@ -67,7 +67,7 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 		Name:                payload.Name,
 		Type:                TypeContainer,
 		Image:               payload.Image,
-		AddAnyCastIPAddress: true,
+		AddAnyCastIPAddress: false,
 		Ports:               ports,
 		EnvironmentVariables: []EnvironmentVariable{
 			{
@@ -81,9 +81,12 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 		},
 		Deployments: []Deployment{
 			{
-				Name:            "default",
-				Pops:            payload.POP,
-				InstancesPerPop: payload.Instances,
+				Name:               "default",
+				Pops:               payload.POP,
+				EnableAutoScaling:  true,
+				CPUUtilization:     50,
+				MinInstancesPerPop: 1,
+				MaxInstancesPerPop: 3,
 			},
 		},
 		Specs: SpecSP1,
@@ -176,7 +179,7 @@ func parseLoadBalancerStatusFromWorkload(workload *WorkloadData, workloadInstanc
 	for _, inst := range workloadInstances {
 		if inst.Status == "RUNNING" {
 			if workload != nil {
-				status.PublicIP = workload.AnycastIPAddress
+				status.PublicIP = inst.PublicIPAddress
 			}
 		}
 	}
