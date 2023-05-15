@@ -270,6 +270,15 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 				data.Deployments = append(data.Deployments, d)
 			}
 
+			data.NetworkInterfaces = []coxedge.NetworkInterface{}
+			n := coxedge.NetworkInterface{
+				VPCSlug:    "default",
+				SubnetSlug: "",
+				IPFamilies: "IPV4",
+				IsPublicIP: true,
+			}
+			data.NetworkInterfaces = append(data.NetworkInterfaces, n)
+
 			resp, err := machineScope.CoxClient.CreateWorkload(data)
 			if err != nil {
 				conditions.MarkFalse(coxMachine, CoxMachineReadyCondition, WorkloadCreateFailedReason, clusterv1.ConditionSeverityInfo, err.Error())

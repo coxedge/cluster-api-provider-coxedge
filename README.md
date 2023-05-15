@@ -32,7 +32,7 @@ providers:
   # Add the cox infrastructure provider to the clusterctl config for discovery
   - name: coxedge
     type: InfrastructureProvider
-    url: https://github.com/coxedge/cluster-api-provider-coxedge/releases/v0.5.1/infrastructure-components.yaml
+    url: https://github.com/coxedge/cluster-api-provider-coxedge/releases/v0.5.5/infrastructure-components.yaml
 ```
 
 - Ensure that the Cox provider has the required credentials. You will need to add your credentials in the [examples/coxcluster.yaml](examples/coxcluster.yaml) file.

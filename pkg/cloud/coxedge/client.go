@@ -299,6 +299,7 @@ type WorkloadData struct {
 	Created                       time.Time             `json:"created"`
 	Ports                         []Port                `json:"ports"`
 	PersistenceStorageTotalSize   int                   `json:"persistenceStorageTotalSize,omitempty"`
+	NetworkInterfaces             []NetworkInterface    `json:"networkInterfaces"`
 }
 
 type Instances struct {
@@ -329,6 +330,7 @@ type CreateWorkloadRequest struct {
 	ContainerServer               string                `json:"containerServer,omitempty"`
 	Commands                      []string              `json:"commands,omitempty"`
 	UserData                      string                `json:"userData,omitempty"`
+	NetworkInterfaces             []NetworkInterface    `json:"networkInterfaces"`
 }
 
 type POSTResponse struct {
@@ -438,4 +440,11 @@ type Task struct {
 type PersistentStorage struct {
 	Path string `json:"path"`
 	Size string `json:"size"`
+}
+
+type NetworkInterface struct {
+	VPCSlug    string `json:"vpcSlug"`
+	IPFamilies string `json:"ipFamilies"`
+	SubnetSlug string `json:"subnetSlug"`
+	IsPublicIP bool   `json:"isPublicIP"`
 }
