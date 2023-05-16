@@ -374,7 +374,7 @@ type InstanceData struct {
 	WorkloadName              string       `json:"workloadName"`
 	Name                      string       `json:"name"`
 	Type                      string       `json:"type"`
-	IPAddress                 string       `json:"ipAddress"`
+	IPAddress                 []string     `json:"ipAddress"`
 	PublicIPAddress           string       `json:"publicIpAddress"`
 	Location                  string       `json:"location"`
 	Created                   time.Time    `json:"created"`

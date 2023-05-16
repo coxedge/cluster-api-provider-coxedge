@@ -340,7 +340,7 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		},
 		{
 			Type:    corev1.NodeInternalIP,
-			Address: instance.IPAddress,
+			Address: instance.IPAddress[0],
 		},
 	})
 
