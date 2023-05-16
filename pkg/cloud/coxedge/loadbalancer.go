@@ -94,7 +94,7 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 			{
 				VPCSlug:    "default",
 				SubnetSlug: "",
-				IPFamilies: "IPV4",
+				IPFamilies: "IPv4",
 				IsPublicIP: true,
 			},
 		},

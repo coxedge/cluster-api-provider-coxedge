@@ -274,7 +274,7 @@ func (r *CoxMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 			n := coxedge.NetworkInterface{
 				VPCSlug:    "default",
 				SubnetSlug: "",
-				IPFamilies: "IPV4",
+				IPFamilies: "IPv4",
 				IsPublicIP: true,
 			}
 			data.NetworkInterfaces = append(data.NetworkInterfaces, n)
