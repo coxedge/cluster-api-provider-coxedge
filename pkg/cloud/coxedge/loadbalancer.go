@@ -90,6 +90,14 @@ func (l *LoadBalancerHelper) CreateLoadBalancer(ctx context.Context, payload *Lo
 			},
 		},
 		Specs: SpecSP1,
+		NetworkInterfaces: []NetworkInterface{
+			{
+				VPCSlug:    "default",
+				SubnetSlug: "",
+				IPFamilies: "IPV4",
+				IsPublicIP: true,
+			},
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create loadBalancer: %w", err)
