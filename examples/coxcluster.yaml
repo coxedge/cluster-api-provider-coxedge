@@ -157,7 +157,7 @@ spec:
       - >
         sed -ri '/\sswap\s/s/^#?/#/' /etc/fstab
       - 'swapoff -a'
-      - 'curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg'
+      - 'curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://dl.k8s.io/apt/doc/apt-key.gpg'
       - 'apt update'
       - 'mkdir -p /etc/apt/keyrings'
       - 'curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg'
@@ -317,7 +317,7 @@ spec:
         - >
           sed -ri '/\sswap\s/s/^#?/#/' /etc/fstab
         - 'swapoff -a'
-        - 'curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg'
+        - 'curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://dl.k8s.io/apt/doc/apt-key.gpg'
         - 'apt update'
         - 'mkdir -p /etc/apt/keyrings'
         - 'curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg'
